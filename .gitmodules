@@ -1,0 +1,9 @@
+[submodule "mathtuples"]
+	path = mathtuples
+	url = https://github.com/fwtompa/mathtuples
+[submodule "mtextsearch"]
+	path = mtextsearch
+	url = https://github.com/andrewrkane/mtextsearch
+[submodule "trec_eval"]
+	path = trec_eval
+	url = https://github.com/usnistgov/trec_eval
