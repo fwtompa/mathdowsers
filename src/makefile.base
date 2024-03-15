@@ -1,0 +1,19 @@
+# common elements used by other makefiles
+
+SHELL = /bin/bash
+
+DO = ../data/original
+DP = ../data/processed
+DI = ../data/index
+DR = ../data/results
+
+MT = ../mathtuples
+MS = ../mtextsearch
+TE = ../trec_eval
+
+
+.PRECIOUS: $(MS)/%.exe
+
+$(MS)/%.exe: $(MS)/src/*
+	$(MAKE) -C $(MS) $(*).exe
+

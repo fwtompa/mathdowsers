@@ -1,0 +1,112 @@
+# makefile to create the corpus of HTML documents to be indexed
+
+all_corpus: corpus
+
+include makefile.base
+
+CY = 2024
+
+R = representation_v3
+FORMULAS = $(DO)
+SLTS = $(FORMULAS)/slt_$(R)
+LATEX = $(FORMULAS)/latex_$(R)
+OPTS = $(FORMULAS)/opt_$(R)
+
+V = V1.3
+COLLECTION = $(DO)
+POSTS = $(COLLECTION)/Posts.$V.xml.gz
+LINKS = $(COLLECTION)/PostLinks.$V.xml.gz
+COMMENTS = $(COLLECTION)/Comments.$V.xml.gz
+OLDCOMMENTS = $(COLLECTION)/Comments.V1.0.xml.gz
+
+IN = $(wildcard $(FORMULAS)/[SO]*/*.tsv)
+OUT = $(subst _$(R),,$(subst $(FORMULAS)/,$(DP)/,$(addsuffix .gz,$(IN))))
+
+F = .tsv.gz
+
+
+# ------------------ PREPRO ------------------
+# To preserve the header and work with the rest: command | (read -r; printf "%s\n" "$REPLY"; sort)
+
+$(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk # $(DP)/QPosts$F 
+	# input format: id post_id thread_id type comment_id old_visual_id visual_id issue formula, sorted numerically by id
+	echo "id	post_id	thread_id	type	comment_id	visual_id	formula" >header
+
+	-rm form_????
+	for f in $(SLTS)/*.tsv; do  \
+	  echo $$f ; \
+	  sed "1d" < $$f | sed -f slts.sed | awk -f slts.awk | sort -t '	' -k 3,3 >t ; \
+	  grep '\\par Formula' t | sed "s/	.*//" > errors; \
+	  grep '\\begin{equation' t | sed "s/	.*//" >> errors; \
+	  grep '\\@@eqnarray' t | sed "s/	.*//" >> errors; \
+	  cat t | awk -f errors.awk >tt ; \
+	  gunzip -c $(DP)/PostsToTitles$F | sed "1d" | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.7,1.9,2.2 tt - >ttt ; \
+	  for y in {2010..2018}; do \
+	      echo $$y ; \
+	      grep "$$y$$" ttt | sed "s/	[0-9]*$$//" >>form_$$y ; \
+	      done ; \
+	  done ; \
+	for y in {2010..2018}; do \
+	  echo $$y ; \
+	  sort -t '	' -k 3,3n -k 2,2n -k 1,1n <form_$$y | cat header - | gzip -c >$(DP)/slts_$$y$F ; \
+	  done ; \
+	rm form_????
+	for f in $(OPTS)/*.tsv; do  \
+	  echo $$f ; \
+	  sed "1d" < $$f | sed -f slts.sed | sort -t '	' -k 3,3 >t ; \
+	  cat t | awk -f errors.awk >tt ; \
+	  gunzip -c $(DP)/PostsToTitles$F | sed "1d" | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.7,1.9,2.2 tt - >ttt ; \
+	  for y in {2010..2018}; do \
+	      echo $$y \
+	      grep "$$y$$" ttt | sed "s/	[0-9]*$$//" >>form_$$y ; \
+	      done ; \
+	  done ; \
+	for y in {2010..2018}; do \
+	  echo $$y ; \
+	  sort -t '	' -k 3,3n -k 2,2n -k 1,1n <form_$$y | cat header - | gzip -c >$(DP)/opts_$$y$F ; \
+	  done ; \
+	rm form_???? t tt ttt header errors
+	# output tables: id post_id thread_id type comment_id visual_id formula, sorted numerically by thread_id, post_id, id
+
+$(DP)/QPosts$F: $(POSTS) collections.sed posts.awk fields.awk
+	gunzip -c $(POSTS) | sed "s/\" *\/>$$/&\r/" | tr "\012\015" " \012" \
+		| sed -f collections.sed | awk -f <( cat fields.awk posts.awk ) |  sort -t '	' -k 2,2n -k 1,1n | gzip -c >$(DP)/QPosts$F
+	join -t '	' -o 1.1,2.2,1.2,1.3 APosts PostsToTitles | sort -t '	' -k 2,2n -k 1,1n -k3,3n | cat <( echo "Qid	Year	Aid	Body" ) - | gzip -c >$(DP)/APosts$F
+	join -t '	' -1 2 -o 1.1,1.2,2.2 PostsToThreads PostsToTitles | sort -t '	' -k 1,1 | gzip -c >$(DP)/PostsToThreads$F
+	cat PostsToTitles | gzip -c >$(DP)/PostsToTitles$F
+	rm APosts PostsToTitles PostsToThreads
+	# QPosts table: Qid Year Title Body, sorted numerically by Year, Qid
+	# APosts table: Qid Year Aid Body, sorted numerically by Year, Qid, Aid
+	# PostsToThreads table: noheader[PostId Qid Year], sorted lexicographically by PostId (for joining with Comments)
+	# PostsToTitles table: noheader[PostId Year Title], sorted lexicographically by PostId (for joining with Related and Formulas)
+
+$(DP)/Comments$F: $(COMMENTS) $(OLDCOMMENTS) collections.sed comments.awk fields.awk $(DP)/QPosts$F
+	gunzip -c $(OLDCOMMENTS) | grep -v "CreationDate=" | cat - <( gunzip -c $(COMMENTS) ) \
+		| sed "s/\" *\/>$$/&\r/" | tr "\012\015" " \012" \
+		| sed -f collections.sed | awk -f <( cat fields.awk comments.awk ) > Comments
+	gunzip -c $(DP)/PostsToThreads$F | join -t '	' - Comments \
+		| sort -t '	' -k 3,3n -k 2,2n -k 1,1n -k 4,4n | cat <( echo "PostId	Qid	Year	CommentId	Text" ) - | gzip -c >$(DP)/Comments$F
+	rm Comments
+	# Comments table: PostId Qid Year CommentId Text, sorted numerically by Year, Qid, PostId, CommentId
+
+$(DP)/Related$F: $(LINKS) collections.sed related.awk fields.awk slts.sed slts.awk titles.awk $(DP)/QPosts$F
+	grep -h "	title	" $(SLTS)/* | sed -f slts.sed | awk -f slts.awk > pmml
+	grep -h "	title	" $(OPTS)/* | sed -f slts.sed > cmml
+	gunzip -c $(DP)/PostsToTitles$F >PostsToTitles
+	gunzip -c $(LINKS) \
+		| sed -f collections.sed | sort -t '	' -k3,3 -k4,4 -k5,5r | awk -f <(cat fields.awk related.awk ) \
+		| join -t '	' -1 2 -o 1.1,1.2,1.3,2.3 - PostsToTitles \
+		| sort -t '	' -k 1,1 \
+		| join -t '	' -o 1.1,2.2,1.2,1.3,1.4 - PostsToTitles \
+		| awk -f titles.awk | sort -t '	' -k 2,2n -k 1,1n -k 4,4n | cat <( echo "Qid	Year	PostId	LinkType	Title") - | gzip -c >$(DP)/Related$F
+	rm PostsToTitles pmml cmml
+	# Related table: Qid Year PostId LinkType Title, sorted numerically by Year, Qid, LinkType, 
+
+# ------------------ CORPUS  ------------------
+$(DP)/task1_$(CY)_corpus_2010.xml.gz: generate_corpus.py $(DP)/QPosts$F $(DP)/Comments$F $(DP)/Related$F $(DP)/slts_2010$F template_minimal_v3.html
+	gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts_ -o $(DP)
+	#gunzip -c $(DP)/QPosts$F | grep "^[^	]*	\(Year\|2018\)	" | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts_ -o $(DP)
+	#gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts_ -O opts_ -o $(DP)
+
+corpus: $(DP)/task1_$(CY)_corpus_2010.xml.gz
+
