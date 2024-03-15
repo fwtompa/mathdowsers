@@ -40,7 +40,7 @@ $(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk # $(
 	  grep '\\begin{equation' t | sed "s/	.*//" >> errors; \
 	  grep '\\@@eqnarray' t | sed "s/	.*//" >> errors; \
 	  cat t | awk -f errors.awk >tt ; \
-	  gunzip -c $(DP)/PostsToTitles$F | sed "1d" | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.7,1.9,2.2 tt - >ttt ; \
+	  gunzip -c $(DP)/PostsToTitles$F | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.7,1.9,2.2 tt - >ttt ; \
 	  for y in {2010..2018}; do \
 	      echo $$y ; \
 	      grep "$$y$$" ttt | sed "s/	[0-9]*$$//" >>form_$$y ; \
@@ -55,9 +55,9 @@ $(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk # $(
 	  echo $$f ; \
 	  sed "1d" < $$f | sed -f slts.sed | sort -t '	' -k 3,3 >t ; \
 	  cat t | awk -f errors.awk >tt ; \
-	  gunzip -c $(DP)/PostsToTitles$F | sed "1d" | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.7,1.9,2.2 tt - >ttt ; \
+	  gunzip -c $(DP)/PostsToTitles$F | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.7,1.9,2.2 tt - >ttt ; \
 	  for y in {2010..2018}; do \
-	      echo $$y \
+	      echo $$y ; \
 	      grep "$$y$$" ttt | sed "s/	[0-9]*$$//" >>form_$$y ; \
 	      done ; \
 	  done ; \
