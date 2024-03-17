@@ -42,6 +42,11 @@ $(DP)/dictionary-gt20-$(IY)-terms.tsv:  $(MS)/msearch.exe $(DI)/task1_$(IY)_L$(l
 index-task1: $(DP)/dictionary-gt20-$(IY)-terms.tsv
 
 # --------- Task 2 ------------
+$(DP)/task2_$(IY)_L$(loc)$X: $(DP)/task2_$(CY)_data$X $(MT)/mathtuples/convert.py
+	gunzip -c $(DP)/task2_$(CY)_data$X \
+	  | python3 $(MT)/mathtuples/convert.py --context 2> _task2-convert-errors.tmp \
+	  | gzip -c > $(DP)/task2_$(IY)_L$(loc)$X
+
 $(DI)/task2_$(IY)_latex_L$(loc).mindex: $(MS)/minvert.exe $(DP)/task2_$(CY)_L$(loc)$X latex_filter_stopwords.py $(DO)/latex_representation_v3
 	gunzip -c $(DP)/task2_$(CY)_L$(loc)$X \
 	  | python3 latex_filter_stopwords.py -tsv $(DO)/latex_representation_v3/ \

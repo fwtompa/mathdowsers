@@ -6,6 +6,7 @@ include makefile.base
 
 S = -s23
 alpha = 18
+alpha2 = 40
 loc = 8
 IY = 2024
 
@@ -48,29 +49,30 @@ query-task1: $(DR)/trec-task1$S-2020.tsv $(DR)/trec-task1$S-2021.tsv $(DR)/trec-
 
 
 # ------------------ TASK 2 ------------------
-#$(DR)/task2$S-%-latex_L$(loc)_a0$(alpha).tsv: $(DR)/topics-task2$S-%.xml $(DI)/task2_2022_latex_L$(loc).mindex.meta latex_filter_stopwords.py \
-#  $(PP22)/stopwords.txt $(PP22)/judged-query-names.txt $(MS)/mstrip.exe $(MS)/msearch.exe
-#	cat $(DR)/topics-task2$S-$(*).xml \
-#	  | python3 latex_filter_stopwords.py -tsv inline \
-#	  | python3 mathtuples/mathtuples/convert.py --context \
-#	  | $(MS)/mstrip.exe -q \
-#	  | awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(PP22)/judged-query-names.txt - \
-#	  | $(MS)/msearch.exe -S $(PP22)/stopwords.txt -k1000 -M -a0.$(alpha) $(DI)/task2_$(IY)_latex_L$(loc).mindex \
-#	  | awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[1]"\t"a[2]; print $$0"\tlatex_L$(loc)_a0$(alpha)"}' \
-#	  > $(DR)/task2$S-$(*)-latex_L$(loc)_a0$(alpha).tsv
-#
-#$(DR)/trec-task2$S-2020-%.tsv: $(DR)/task2$S-2020-%.tsv dedup_task2.py
-#	python3 dedup_task2.py -qre $(EX)/qrels_official_2020/qrel_task2 -tsv $(DO)/Formulas/latex_representation_v3/ $(DR)/task2$S-2020-*.tsv
-#
-#$(DR)/trec-task2$S-2021-%.tsv: $(DR)/task2$S-2021-%.tsv dedup_task2.py
-#	python3 dedup_task2.py -qre $(EX)/qrels_official_2021/qrel_task2 -tsv $(DO)/Formulas/latex_representation_v3/ $(DR)/task2$S-2021-*.tsv
-#
-#$(DR)/trec-task2$S-2022-%.tsv: $(DR)/task2$S-2022-%.tsv dedup_task2.py
-#	python3 dedup_task2.py -qre $(EX)/qrels_official_2022/qrel_task2 -tsv $(DO)/Formulas/latex_representation_v3/ $(DR)/task2$S-2022-*.tsv
-#
-#.PRECIOUS: $(DR)/task2$S-%-L$(loc)_a0$(alpha).tsv $(DR)/trec-task2$S-%.tsv
-#
-#query-task2: $(DR)/trec-task2$S-2020-latex_L$(loc)_a040.tsv $(DR)/trec-task2$S-2021-latex_L$(loc)_a040.tsv $(DR)/trec-task2$S-2022-latex_L$(loc)_a040.tsv
+$(DR)/task2$S-%-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-%.xml $(DI)/task2_$(IY)_latex_L$(loc).mindex.meta latex_filter_stopwords.py \
+   stopwords.txt $(DP)/judged-query-names.txt $(MS)/mstrip.exe $(MS)/mtokenize.exe $(MS)/msearch.exe
+	cat $(DP)/topics-task2$S-$(*).xml \
+	  | python3 latex_filter_stopwords.py -tsv inline \
+	  | python3 $(MT)/mathtuples/convert.py --context \
+	  | $(MS)/mstrip.exe -q \
+	  | awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
+	  | $(MS)/mtokenize.exe -q -M -S stopwords.txt \
+	  | $(MS)/msearch.exe -k1000 -M -a0.$(alpha2) $(DI)/task2_$(IY)_latex_L$(loc).mindex \
+	  | awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[1]"\t"a[2]; print $$0"\tlatex_L$(loc)_a0$(alpha2)"}' \
+	  > $(DR)/task2$S-$(*)-latex_L$(loc)_a0$(alpha2).tsv
+
+$(DR)/trec-task2$S-2020-%.tsv: $(DR)/task2$S-2020-%.tsv dedup_task2.py
+	python3 dedup_task2.py -qre $(DO)/qrel_task2_2020.tsv -tsv $(DO)/latex_representation_v3/ $(DR)/task2$S-2020-*.tsv
+
+$(DR)/trec-task2$S-2021-%.tsv: $(DR)/task2$S-2021-%.tsv dedup_task2.py
+	python3 dedup_task2.py -qre $(DO)/qrel_task2_2021_test_official_evaluation.tsv -tsv $(DO)/latex_representation_v3/ $(DR)/task2$S-2021-*.tsv
+
+$(DR)/trec-task2$S-2022-%.tsv: $(DR)/task2$S-2022-%.tsv dedup_task2.py
+	python3 dedup_task2.py -qre $(DO)/qrel_task2_2022_official.tsv -tsv $(DO)/latex_representation_v3/ $(DR)/task2$S-2022-*.tsv
+
+.PRECIOUS: $(DR)/task2$S-%-L$(loc)_a0$(alpha2).tsv $(DR)/trec-task2$S-%.tsv
+
+query-task2: $(DR)/trec-task2$S-2020-latex_L$(loc)_a0$(alpha2).tsv $(DR)/trec-task2$S-2021-latex_L$(loc)_a0$(alpha2).tsv $(DR)/trec-task2$S-2022-latex_L$(loc)_a0$(alpha2).tsv
 
 # ------------------ EVAL ------------------
 $(TE)/trec_eval:
@@ -90,8 +92,10 @@ eval-task2-%: query-task2 $(TE)/trec_eval
 	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_2021_test_official_evaluation.tsv $(DR)/trec-task2$S-2021-$(*).tsv; \
 	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_2022_official.tsv $(DR)/trec-task2$S-2022-$(*).tsv
 
-eval: eval-task1-L$(loc) #eval-task2-latex_L$(loc)_a040
+eval-task1: eval-task1-L$(loc)
 
-query: eval
+eval-task2: eval-task2-latex_L$(loc)_a0$(alpha2)
+
+query: eval-task1 # eval-task2
 
 
