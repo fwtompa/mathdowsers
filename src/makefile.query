@@ -29,7 +29,7 @@ $(DP)/queries-task1$S-all.txt: $(DP)/topics-task1$S-2020.xml $(DP)/topics-task1$
 
 $(DR)/trec-task1$S-all.tsv: $(DP)/queries-task1$S-all.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe
 	time cat $(DP)/queries-task1$S-all.txt \
-	  | $(MS)/mtokenize.exe -q -M \
+	  | $(MS)/mtokenize.exe -q -M -T keywords.txt -S stopwords.txt \
 	  | $(MS)/msearch.exe -k1000 -M -a0.$(alpha) $(DI)/task1_$(IY)_L$(loc).mindex \
 	  | awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[3]; print $$0"\tL$(loc)_a0$(alpha)"}' \
 	  | awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' \
