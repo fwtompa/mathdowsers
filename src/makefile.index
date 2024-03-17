@@ -15,7 +15,7 @@ X = .xml.gz
 # ------------------ INDEX ------------------
 
 # --------- Task 1 ------------
-$(DP)/task1_$(CY)_L$(loc)_2010$X:  $(DP)/task1_$(CY)_corpus_2010$X $(MT)/mathtuples/convert.py $(MS)/mstrip.exe
+$(DP)/task1_$(CY)_L$(loc)_2010$X:  $(DP)/task1_$(CY)_corpus_2010$X $(MT)/mathtuples/convert.py # $(MS)/mstrip.exe
 	for y in {2010..2018}; do \
 	  echo $$y ; \
 	  gunzip -c $(DP)/task1_$(CY)_corpus_$$y$X \
@@ -34,12 +34,12 @@ $(DI)/task1_$(IY)_L$(loc).mindex: $(MS)/minvert.exe $(MS)/mtokenize.exe $(DP)/ta
 $(DI)/task1_$(IY)_L$(loc).mindex.meta: $(DI)/task1_$(IY)_L$(loc).mindex $(MS)/mencode.exe
 	$(MS)/mencode.exe $(DI)/task1_$(IY)_L$(loc).mindex
 
-$(DI)/dictionary-gt20-$(IY)-terms.tsv:  $(MS)/msearch.exe $(DI)/task1_$(IY)_L$(loc).mindex.meta
+$(DP)/dictionary-gt20-$(IY)-terms.tsv:  $(MS)/msearch.exe $(DI)/task1_$(IY)_L$(loc).mindex.meta
 	$(MS)/msearch.exe -dd $(DI)/task1_$(IY)_L$(loc).mindex \
 	  | grep "^[0-9][0-9]"  | grep -v "^1[0-9][^0-9]" | grep -v "^20[^0-9]" \
-	  > $(DI)/dictionary-gt20-$(IY)-terms.tsv
+	  > $(DP)/dictionary-gt20-$(IY)-terms.tsv
 
-index-task1: $(DI)/dictionary-gt20-$(IY)-terms.tsv
+index-task1: $(DP)/dictionary-gt20-$(IY)-terms.tsv
 
 # --------- Task 2 ------------
 $(DI)/task2_$(IY)_latex_L$(loc).mindex: $(MS)/minvert.exe $(DP)/task2_$(CY)_L$(loc)$X latex_filter_stopwords.py $(DO)/latex_representation_v3
