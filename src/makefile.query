@@ -27,18 +27,13 @@ $(DP)/queries-task1$S-all.txt: $(DP)/topics-task1$S-2020.xml $(DP)/topics-task1$
 	  | awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
 	  > $(DP)/queries-task1$S-all.txt
 
-$(DR)/task1$S-all.tsv: $(DP)/queries-task1$S-all.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe
+$(DR)/trec-task1$S-all.tsv: $(DP)/queries-task1$S-all.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe
 	time cat $(DP)/queries-task1$S-all.txt \
 	  | $(MS)/mtokenize.exe -q -M \
 	  | $(MS)/msearch.exe -k1000 -M -a0.$(alpha) $(DI)/task1_$(IY)_L$(loc).mindex \
 	  | awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[3]; print $$0"\tL$(loc)_a0$(alpha)"}' \
-	  > $(DR)/task1$S-all.tsv
-
-$(DR)/trec-task1$S-all.tsv: $(DR)/task1$S-all.tsv
-	awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' $(DR)/task1$S-all.tsv > $(DR)/trec-task1$S-all.tsv
-
-.PRECIOUS: $(DR)/queries-task1$S-all.txt
-#.INTERMEDIATE: $(DR)/trec-task1$S-all.tsv
+	  | awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' \
+	  > $(DR)/trec-task1$S-all.tsv
 
 query-task1: $(DR)/trec-task1$S-all.tsv
 
