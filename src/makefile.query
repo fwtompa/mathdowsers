@@ -88,7 +88,7 @@ eval-task1-%: query-task1 $(TE)/trec_eval
 
 eval-task2-%: query-task2 $(TE)/trec_eval
 	echo task2 2020, 2021, 2022; \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_2020.tsv $(DR)/trec-task2$S-2020-$(*).tsv; \
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_all.tsv $(DR)/trec-task2$S-2020-$(*).tsv; \
 	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_2021_test_official_evaluation.tsv $(DR)/trec-task2$S-2021-$(*).tsv; \
 	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_2022_official.tsv $(DR)/trec-task2$S-2022-$(*).tsv
 
