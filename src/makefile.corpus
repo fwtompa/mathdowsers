@@ -108,5 +108,8 @@ $(DP)/task1_$(CY)_corpus_2010.xml.gz: generate_corpus.py $(DP)/QPosts$F $(DP)/Co
 	#gunzip -c $(DP)/QPosts$F | grep "^[^	]*	\(Year\|2018\)	" | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts_ -o $(DP)
 	#gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts_ -O opts_ -o $(DP)
 
-corpus: $(DP)/task1_$(CY)_corpus_2010.xml.gz
+$(DP)/task2_$(CY)_data.xml.gz: extract_formulas_task2.py
+	python3 extract_formulas_task2.py --output_folder $(DP)/
+
+corpus: $(DP)/task1_$(CY)_corpus_2010.xml.gz # $(DP)/task2_$(CY)_data.xml.gz
 
