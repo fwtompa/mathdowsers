@@ -10,7 +10,6 @@ alpha2 = 40
 loc = 8
 IY = 2024
 
-
 # ------------------ QUERY ------------------
 $(DP)/topics-task1$S-2020.xml $(DP)/topics-task1$S-2021.xml $(DP)/topics-task1$S-2022.xml \
 $(DP)/topics-task2$S-2020.xml $(DP)/topics-task2$S-2021.xml $(DP)/topics-task2$S-2022.xml: query*.py
@@ -20,10 +19,6 @@ $(DP)/judged-query-names.txt: $(DO)/qrel_*
 	cat $(DO)/qrel_* | awk '{print $$1}' | sort -u > $(DP)/judged-query-names.txt
 
 # ------------------ TASK 1 ------------------
-$(DR)/topics-task1$S-2021s.xml: $(DR)/topics-task1$S-2021.xml
-	echo "<#Topics>" | cat $(DR)/topics-task1$S-2021.xml - | sed "/A..20.>/,/<\/Topics>/d;s/<#T/<\/T/" > $(DR)/topics-task1$S-2021s.xml
-
-
 $(DP)/queries-task1$S-all.txt: $(DP)/topics-task1$S-2020.xml $(DP)/topics-task1$S-2021.xml $(DP)/topics-task1$S-2022.xml $(MS)/mstrip.exe $(DP)/judged-query-names.txt
 	cat $(DP)/topics-task1$S-*.xml \
 	  | python3 $(MT)/mathtuples/convert.py --context \
@@ -46,7 +41,6 @@ $(DR)/trec-task1$S-all.tsv: $(DR)/task1$S-all.tsv
 #.INTERMEDIATE: $(DR)/trec-task1$S-all.tsv
 
 query-task1: $(DR)/trec-task1$S-all.tsv
-
 
 # ------------------ TASK 2 ------------------
 $(DR)/task2$S-all-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-2020.xml $(DP)/topics-task2$S-2021.xml $(DP)/topics-task2$S-2022.xml \
@@ -92,5 +86,4 @@ eval-task1: eval-task1-L$(loc)
 eval-task2: eval-task2-latex_L$(loc)_a0$(alpha2)
 
 query: eval-task1 # eval-task2
-
 
