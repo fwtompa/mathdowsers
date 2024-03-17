@@ -24,28 +24,28 @@ $(DR)/topics-task1$S-2021s.xml: $(DR)/topics-task1$S-2021.xml
 	echo "<#Topics>" | cat $(DR)/topics-task1$S-2021.xml - | sed "/A..20.>/,/<\/Topics>/d;s/<#T/<\/T/" > $(DR)/topics-task1$S-2021s.xml
 
 
-$(DP)/queries-task1$S-%.txt: $(DP)/topics-task1$S-%.xml $(MS)/mstrip.exe $(DP)/judged-query-names.txt
-	cat $(DP)/topics-task1$S-$(*).xml \
+$(DP)/queries-task1$S-all.txt: $(DP)/topics-task1$S-2020.xml $(DP)/topics-task1$S-2021.xml $(DP)/topics-task1$S-2022.xml $(MS)/mstrip.exe $(DP)/judged-query-names.txt
+	cat $(DP)/topics-task1$S-*.xml \
 	  | python3 $(MT)/mathtuples/convert.py --context \
 	  | sed "/<Tags>/s/,/, /g" \
 	  | $(MS)/mstrip.exe -q \
 	  | awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
-	  > $(DP)/queries-task1$S-$(*).txt
+	  > $(DP)/queries-task1$S-all.txt
 
-$(DR)/task1$S-%.tsv: $(DP)/queries-task1$S-%.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe
-	cat $(DP)/queries-task1$S-$(*).txt \
+$(DR)/task1$S-all.tsv: $(DP)/queries-task1$S-all.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe
+	time cat $(DP)/queries-task1$S-all.txt \
 	  | $(MS)/mtokenize.exe -q -M \
 	  | $(MS)/msearch.exe -k1000 -M -a0.$(alpha) $(DI)/task1_$(IY)_L$(loc).mindex \
 	  | awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[3]; print $$0"\tL$(loc)_a0$(alpha)"}' \
-	  > $(DR)/task1$S-$(*).tsv
+	  > $(DR)/task1$S-all.tsv
 
-$(DR)/trec-task1$S-%.tsv: $(DR)/task1$S-%.tsv
-	awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' $(DR)/task1$S-$(*).tsv > $(DR)/trec-task1$S-$(*).tsv
+$(DR)/trec-task1$S-all.tsv: $(DR)/task1$S-all.tsv
+	awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' $(DR)/task1$S-all.tsv > $(DR)/trec-task1$S-all.tsv
 
-.PRECIOUS: $(DR)/queries-task1$S-%.txt $(DR)/trec-task1$S-2020.tsv $(DR)/trec-task1$S-2021s.tsv $(DR)/trec-task1$S-2021.tsv $(DR)/trec-task1$S-2022.tsv
-#.INTERMEDIATE: $(DR)/trec-task1$S-2020.tsv $(DR)/trec-task1$S-2021s.tsv $(DR)/trec-task1$S-2021.tsv $(DR)/trec-task1$S-2022.tsv
+.PRECIOUS: $(DR)/queries-task1$S-all.txt
+#.INTERMEDIATE: $(DR)/trec-task1$S-all.tsv
 
-query-task1: $(DR)/trec-task1$S-2020.tsv $(DR)/trec-task1$S-2021.tsv $(DR)/trec-task1$S-2022.tsv
+query-task1: $(DR)/trec-task1$S-all.tsv
 
 
 # ------------------ TASK 2 ------------------
@@ -82,9 +82,9 @@ $(TE)/trec_eval:
 
 eval-task1-%: query-task1 $(TE)/trec_eval
 	echo task1 2020, 2021, 2022, alpha=0.$(alpha), loc=$(loc); \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_official_task1 $(DR)/trec-task1$S-2020.tsv; \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2021_test.tsv $(DR)/trec-task1$S-2021.tsv; \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2022_official.tsv $(DR)/trec-task1$S-2022.tsv
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_official_task1 $(DR)/trec-task1$S-all.tsv; \
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2021_test.tsv $(DR)/trec-task1$S-all.tsv; \
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2022_official.tsv $(DR)/trec-task1$S-all.tsv
 
 eval-task2-%: query-task2 $(TE)/trec_eval
 	echo task2 2020, 2021, 2022; \
