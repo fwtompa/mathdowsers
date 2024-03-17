@@ -49,9 +49,10 @@ query-task1: $(DR)/trec-task1$S-all.tsv
 
 
 # ------------------ TASK 2 ------------------
-$(DR)/task2$S-%-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-%.xml $(DI)/task2_$(IY)_latex_L$(loc).mindex.meta latex_filter_stopwords.py \
+$(DR)/task2$S-all-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-2020.xml $(DP)/topics-task2$S-2021.xml $(DP)/topics-task2$S-2022.xml \
+   $(DI)/task2_$(IY)_latex_L$(loc).mindex.meta latex_filter_stopwords.py \
    stopwords.txt $(DP)/judged-query-names.txt $(MS)/mstrip.exe $(MS)/mtokenize.exe $(MS)/msearch.exe
-	cat $(DP)/topics-task2$S-$(*).xml \
+	time cat $(DP)/topics-task2$S-*.xml \
 	  | python3 latex_filter_stopwords.py -tsv inline \
 	  | python3 $(MT)/mathtuples/convert.py --context \
 	  | $(MS)/mstrip.exe -q \
@@ -59,20 +60,14 @@ $(DR)/task2$S-%-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-%.xml $(DI)/
 	  | $(MS)/mtokenize.exe -q -M -S stopwords.txt \
 	  | $(MS)/msearch.exe -k1000 -M -a0.$(alpha2) $(DI)/task2_$(IY)_latex_L$(loc).mindex \
 	  | awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[1]"\t"a[2]; print $$0"\tlatex_L$(loc)_a0$(alpha2)"}' \
-	  > $(DR)/task2$S-$(*)-latex_L$(loc)_a0$(alpha2).tsv
+	  > $(DR)/task2$S-all-latex_L$(loc)_a0$(alpha2).tsv
 
-$(DR)/trec-task2$S-2020-%.tsv: $(DR)/task2$S-2020-%.tsv dedup_task2.py
-	python3 dedup_task2.py -qre $(DO)/qrel_task2_2020.tsv -tsv $(DO)/latex_representation_v3/ $(DR)/task2$S-2020-*.tsv
+$(DR)/trec-task2$S-all-%.tsv: $(DR)/task2$S-all-%.tsv dedup_task2.py
+	python3 dedup_task2.py -qre <( cat $(DO)/qrel_task2_*.tsv ) -tsv $(DO)/latex_representation_v3/ $(DR)/task2$S-all-*.tsv
 
-$(DR)/trec-task2$S-2021-%.tsv: $(DR)/task2$S-2021-%.tsv dedup_task2.py
-	python3 dedup_task2.py -qre $(DO)/qrel_task2_2021_test_official_evaluation.tsv -tsv $(DO)/latex_representation_v3/ $(DR)/task2$S-2021-*.tsv
+.PRECIOUS: $(DR)/task2$S-all-L$(loc)_a0$(alpha2).tsv $(DR)/trec-task2$S-all-%.tsv
 
-$(DR)/trec-task2$S-2022-%.tsv: $(DR)/task2$S-2022-%.tsv dedup_task2.py
-	python3 dedup_task2.py -qre $(DO)/qrel_task2_2022_official.tsv -tsv $(DO)/latex_representation_v3/ $(DR)/task2$S-2022-*.tsv
-
-.PRECIOUS: $(DR)/task2$S-%-L$(loc)_a0$(alpha2).tsv $(DR)/trec-task2$S-%.tsv
-
-query-task2: $(DR)/trec-task2$S-2020-latex_L$(loc)_a0$(alpha2).tsv $(DR)/trec-task2$S-2021-latex_L$(loc)_a0$(alpha2).tsv $(DR)/trec-task2$S-2022-latex_L$(loc)_a0$(alpha2).tsv
+query-task2: $(DR)/trec-task2$S-all-latex_L$(loc)_a0$(alpha2).tsv
 
 # ------------------ EVAL ------------------
 $(TE)/trec_eval:
@@ -88,9 +83,9 @@ eval-task1-%: query-task1 $(TE)/trec_eval
 
 eval-task2-%: query-task2 $(TE)/trec_eval
 	echo task2 2020, 2021, 2022; \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_all.tsv $(DR)/trec-task2$S-2020-$(*).tsv; \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_2021_test_official_evaluation.tsv $(DR)/trec-task2$S-2021-$(*).tsv; \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_2022_official.tsv $(DR)/trec-task2$S-2022-$(*).tsv
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_all.tsv $(DR)/trec-task2$S-all-$(*).tsv; \
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_2021_test_official_evaluation.tsv $(DR)/trec-task2$S-all-$(*).tsv; \
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task2_2022_official.tsv $(DR)/trec-task2$S-all-$(*).tsv
 
 eval-task1: eval-task1-L$(loc)
 
