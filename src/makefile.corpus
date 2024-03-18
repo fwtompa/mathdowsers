@@ -19,16 +19,13 @@ LINKS = $(COLLECTION)/PostLinks.$V.xml.gz
 COMMENTS = $(COLLECTION)/Comments.$V.xml.gz
 OLDCOMMENTS = $(COLLECTION)/Comments.V1.0.xml.gz
 
-IN = $(wildcard $(FORMULAS)/[SO]*/*.tsv)
-OUT = $(subst _$(R),,$(subst $(FORMULAS)/,$(DP)/,$(addsuffix .gz,$(IN))))
-
 F = .tsv.gz
 
 
 # ------------------ PREPRO ------------------
 # To preserve the header and work with the rest: command | (read -r; printf "%s\n" "$REPLY"; sort)
 
-$(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk # $(DP)/QPosts$F 
+$(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk # $(DP)/PostsToTitles$F 
 	# input format: id post_id thread_id type comment_id old_visual_id visual_id issue formula, sorted numerically by id
 	echo "id	post_id	thread_id	type	comment_id	visual_id	formula" >header
 
@@ -68,6 +65,15 @@ $(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk # $(
 	rm form_???? t tt ttt header errors
 	# output tables: id post_id thread_id type comment_id visual_id formula, sorted numerically by thread_id, post_id, id
 
+$(DP)/APosts$F: $(DP)/QPosts$F
+	# APosts table: Qid Year Aid Body, sorted numerically by Year, Qid, Aid
+
+$(DP)/PostsToThreads$F: $(DP)/QPosts$F
+	# PostsToThreads table: noheader[PostId Qid Year], sorted lexicographically by PostId (for joining with Comments)
+
+$(DP)/PostsToTitles$F: $(DP)/QPosts$F
+	# PostsToTitles table: noheader[PostId Year Title], sorted lexicographically by PostId (for joining with Related and Formulas)
+
 $(DP)/QPosts$F: $(POSTS) collections.sed posts.awk fields.awk
 	gunzip -c $(POSTS) | sed "s/\" *\/>$$/&\r/" | tr "\012\015" " \012" \
 		| sed -f collections.sed | awk -f <( cat fields.awk posts.awk ) |  sort -t '	' -k 2,2n -k 1,1n | gzip -c >$(DP)/QPosts$F
@@ -76,11 +82,8 @@ $(DP)/QPosts$F: $(POSTS) collections.sed posts.awk fields.awk
 	cat PostsToTitles | gzip -c >$(DP)/PostsToTitles$F
 	rm APosts PostsToTitles PostsToThreads
 	# QPosts table: Qid Year Title Body, sorted numerically by Year, Qid
-	# APosts table: Qid Year Aid Body, sorted numerically by Year, Qid, Aid
-	# PostsToThreads table: noheader[PostId Qid Year], sorted lexicographically by PostId (for joining with Comments)
-	# PostsToTitles table: noheader[PostId Year Title], sorted lexicographically by PostId (for joining with Related and Formulas)
 
-$(DP)/Comments$F: $(COMMENTS) $(OLDCOMMENTS) collections.sed comments.awk fields.awk $(DP)/QPosts$F
+$(DP)/Comments$F: $(COMMENTS) $(OLDCOMMENTS) collections.sed comments.awk fields.awk $(DP)/PostsToThreads$F
 	gunzip -c $(OLDCOMMENTS) | grep -v "CreationDate=" | cat - <( gunzip -c $(COMMENTS) ) \
 		| sed "s/\" *\/>$$/&\r/" | tr "\012\015" " \012" \
 		| sed -f collections.sed | awk -f <( cat fields.awk comments.awk ) > Comments
@@ -89,7 +92,7 @@ $(DP)/Comments$F: $(COMMENTS) $(OLDCOMMENTS) collections.sed comments.awk fields
 	rm Comments
 	# Comments table: PostId Qid Year CommentId Text, sorted numerically by Year, Qid, PostId, CommentId
 
-$(DP)/Related$F: $(LINKS) collections.sed related.awk fields.awk slts.sed slts.awk titles.awk $(DP)/QPosts$F
+$(DP)/Related$F: $(LINKS) collections.sed related.awk fields.awk slts.sed slts.awk titles.awk $(DP)/PostsToTitles$F
 	grep -h "	title	" $(SLTS)/* | sed -f slts.sed | awk -f slts.awk > pmml
 	grep -h "	title	" $(OPTS)/* | sed -f slts.sed > cmml
 	gunzip -c $(DP)/PostsToTitles$F >PostsToTitles
