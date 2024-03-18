@@ -40,12 +40,9 @@ as appropriate; and if they are to be stored locally, use instead:
     mkdir data/results
   ```
 
-## Initial data requirements
+## ARQMath benchmark data
 
 Externally-produced data files are stored in the data/original subdirectory, which must be populated with the expected data before executing the processing pipeline.
-
-### ARQMath benchmark data
-
 The benchmark's data files can be found from the official ARQMath page, last seen at
 [Data and Tools](https://www.cs.rit.edu/~dprl/ARQMath/arqmath-resources.html).
 Because the mathdowsers data organization is much simpler than that of the ARQMath site, the required files must be found by browsing that site to locate the following files to download and place in data/original.
@@ -86,11 +83,6 @@ Because the mathdowsers data organization is much simpler than that of the ARQMa
     - data/original/Topics_Task2_2021_V1.1.xml
     - data/original/Topics_Task2_2022_V0.1.xml
     - (for Task 2 evaluations:)
-      - data/original/qrel_task2_2020.tsv			(*???? unsure of the file on ARQMath site*)
+      - data/original/qrel_task2_all.tsv
       - data/original/qrel_task2_2021_test_official_evaluation.tsv
       - data/original/qrel_task2_2022_official.tsv
-
-### Other data
-
-- (for stopwords:)
-- (for *mathy* words:)

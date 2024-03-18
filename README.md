@@ -1,6 +1,6 @@
 # The mathdowsers project
 
-The project goal is to improve MathIR. The projects uses the ARQMath benchmarks, developed as part of CLEF. 
+The project goal is to improve MathIR. To this end, the project uses the ARQMath benchmark, which were developed as part of CLEF. 
 This is a continuation of the [ARQMath mathdowser project](https://github.com/kiking0501/MathDowsers-ARQMath).
 
 ## Participants
@@ -32,7 +32,7 @@ The main task presents experimenters with 100 mathematical questions (selected b
 
 ## Running the code
 
-After cloning the project, but before starting starting the execution pipeline, input data must be loaded  (see README\_data.md).
+After cloning the repository, but before starting starting the execution pipeline, input data must be loaded  (see **README\_data.md**).
 The following commands then execute portions of the pipeline:
   ```
     make corpus (create the database to be searched from the raw data provided by the ARQMath organizers)
