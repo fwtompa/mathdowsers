@@ -26,6 +26,7 @@ $(DR)/trec-task1$S-all.tsv: $(DP)/topics-task1$S-2020.xml $(DP)/topics-task1$S-2
 	  | sed "/<Tags>/s/,/, /g" \
 	  | $(MS)/mstrip.exe -q \
 	  | awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
+	  | unidecode \
 	  | $(MS)/mtokenize.exe -q -M -T keywords.txt -S stopwords.txt \
 	  | $(MS)/msearch.exe -k1000 -M -a0.$(alpha) $(DI)/task1_$(IY)_L$(loc).mindex \
 	  | awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[3]; print $$0"\tL$(loc)_a0$(alpha)"}' \
