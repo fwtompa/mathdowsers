@@ -1,4 +1,4 @@
 data
 .DS_Store
 src/__pycache__
-trec_eval/trec_eval*
+trec_eval
