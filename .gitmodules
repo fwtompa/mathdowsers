@@ -7,3 +7,6 @@
 [submodule "trec_eval"]
 	path = trec_eval
 	url = https://github.com/usnistgov/trec_eval
+[submodule "stopwords"]
+	path = stopwords
+	url = https://github.com/igorbrigadir/stopwords
