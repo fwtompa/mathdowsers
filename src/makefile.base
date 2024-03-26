@@ -10,6 +10,7 @@ DR = ../data/results
 MT = ../mathtuples
 MS = ../mtextsearch
 TE = ../trec_eval
+SW = ../stopwords/en
 
 
 .PRECIOUS: $(MS)/%.exe

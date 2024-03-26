@@ -1,11 +1,12 @@
 all:
+	echo "must make one of corpus, index, or query"
 
 corpus:
-	make -C src corpus
+	$(MAKE) -C src corpus
 
 index:
-	make -C src index
+	$(MAKE) -C src index
 
 query:
-	make -C src query
+	$(MAKE) -C src query
 
