@@ -11,12 +11,12 @@ loc = 8
 IY = 2024
 
 # ------------------ SELECT ------------------
-stopwords $(DP)/stopwords.txt: $(SW)/snowball_original.txt $(SW)/nltk.txt
+$(DP)/stopwords.txt: $(SW)/snowball_original.txt $(SW)/nltk.txt
 	printf "#(start)#\n#(end)#\ntext\namp\nalign\nst\nna\nca\n" \
 		| cat - $(SW)/snowball_original.txt $(SW)/nltk.txt | tr -d "\015" \
 		| sort -u | grep -v "^$$" > $(DP)/stopwords.txt
 
-keepwords $(DP)/keepwords.txt: $(DP)/QPosts.tsv.gz $(DP)/stopwords.txt
+$(DP)/keepwords.txt: $(DP)/QPosts.tsv.gz $(DP)/stopwords.txt
 	#<p class="index"><a href="e/exclusive.htm" target="_self" class="index">Exclusive (interval)</a>
 	#<p class="index"><a href="g/greek_alphabet.htm" class="index">Gamma <font face="Times New Roman, Times, serif">(&Gamma; &gamma;)</font></a>
 	wget -O - -q http://www.mathwords.com/a_to_z.htm  \
