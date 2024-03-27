@@ -19,12 +19,12 @@ $(DP)/stopwords.txt: $(SW)/snowball_original.txt $(SW)/nltk.txt
 $(DP)/keepwords.txt: $(DP)/QPosts.tsv.gz $(DP)/stopwords.txt
 	#<p class="index"><a href="e/exclusive.htm" target="_self" class="index">Exclusive (interval)</a>
 	#<p class="index"><a href="g/greek_alphabet.htm" class="index">Gamma <font face="Times New Roman, Times, serif">(&Gamma; &gamma;)</font></a>
-	wget -O - -q http://www.mathwords.com/a_to_z.htm  \
+	curl http://www.mathwords.com/a_to_z.htm  \
 		| sed "/class=.index./!d;s/^.*class=.index.>//;s/ *<.*//;s/(//g;s/)//g" \
 		| tr "\222\347\364\366 [:upper:]" "'coo\012[:lower:]" \
 		| sort -u > mathdict_words.txt
 	#<a href="http://planetmath.org/TopicsOnCalculus">TopicsOnCalculus</a>
-	wget -O - -q https://planetmath.org/msc.html  \
+	curl https://planetmath.org/msc.html  \
 		| grep "http:..planetmath.org" | sed "s/<.a>//;s/^.*>//;s/[A-Z]/ &/g;s/[0-9]/ /g" \
 		| tr " [:upper:]" "\012[:lower:]" \
 		| sort -u > planetmath_words.txt
