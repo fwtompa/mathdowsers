@@ -90,8 +90,8 @@ $(DR)/trec-task1$S-all.tsv: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2
     $(DP)/keepwords.txt $(DP)/stopwords.txt unicode2asii.py
 	time cat $(DP)/topics-task1$S-*.txt \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
-		| $(MS)/mtokenize.exe -q -M -T $(DP)/keepwords.txt -S $(DP)/stopwords.txt \
 		| python3 unicode2asii.py -c \
+		| $(MS)/mtokenize.exe -q -M -T $(DP)/keepwords.txt -S $(DP)/stopwords.txt \
 		| $(MS)/msearch.exe -k1000 -M -a0.$(alpha) $(DI)/task1_$(IY)_L$(loc).mindex \
 		| awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[3]; print $$0"\tL$(loc)_a0$(alpha)"}' \
 		| awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' \
@@ -106,8 +106,8 @@ $(DR)/task2$S-all-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-2020.txt $
 	time cat $(DP)/topics-task2$S-*.txt \
 		| python3 latex_filter_stopwords.py -tsv inline \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
-		| $(MS)/mtokenize.exe -q -M -S $(DP)/stopwords.txt \
 		| python3 unicode2asii.py -c \
+		| $(MS)/mtokenize.exe -q -M -S $(DP)/stopwords.txt \
 		| $(MS)/msearch.exe -k1000 -M -a0.$(alpha2) $(DI)/task2_$(IY)_latex_L$(loc).mindex \
 		| awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[1]"\t"a[2]; print $$0"\tlatex_L$(loc)_a0$(alpha2)"}' \
 		> $(DR)/task2$S-all-latex_L$(loc)_a0$(alpha2).tsv
