@@ -35,6 +35,11 @@ $(DP)/keepwords.txt: $(DP)/QPosts.tsv.gz $(DP)/stopwords.txt
 		| diff - $(DP)/stopwords.txt | grep "<" | sed "s/< *//" > $(DP)/keepwords.txt
 	rm MSEtag_words.txt mathdict_words.txt planetmath_words.txt
 
+stopwords-mathstem.txt: stopwords.txt keywords.txt unicode2asii.py
+	comm -23 <( cat /usr/share/dict/words | $(MS)/mtokenize.exe | sort -u ) <( cat keywords.txt | python3 unicode2asii.py -c | $(MS)/mtokenize.exe | sort -u ) \
+	| cat - <( cat stopwords.txt | $(MS)/mtokenize.exe -M ) | sort -u \
+	> stopwords-mathstem.txt
+
 # ------------------ QUERY ------------------
 topics: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics-task1$S-2022.txt \
 	$(DP)/topics-task2$S-2020.txt $(DP)/topics-task2$S-2021.txt $(DP)/topics-task2$S-2022.txt
@@ -87,11 +92,11 @@ $(DP)/judged-query-names.txt: $(DO)/qrel_*
 # ------------------ TASK 1 ------------------
 $(DR)/trec-task1$S-all.tsv: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics-task1$S-2022.txt \
     $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe \
-    $(DP)/keepwords.txt $(DP)/stopwords.txt unicode2asii.py
+    $(DP)/keepwords.txt $(DP)/stopwords.txt stopwords-mathstem.txt unicode2asii.py
 	time cat $(DP)/topics-task1$S-*.txt \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
 		| python3 unicode2asii.py -c \
-		| $(MS)/mtokenize.exe -q -M -T $(DP)/keepwords.txt -S $(DP)/stopwords.txt \
+		| $(MS)/mtokenize.exe -q -M -s stopwords-mathstem.txt \
 		| $(MS)/msearch.exe -k1000 -M -a0.$(alpha) $(DI)/task1_$(IY)_L$(loc).mindex \
 		| awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[3]; print $$0"\tL$(loc)_a0$(alpha)"}' \
 		| awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' \
