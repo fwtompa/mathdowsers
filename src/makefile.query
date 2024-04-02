@@ -100,7 +100,7 @@ $(DR)/trec-task1$S-all.tsv: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2
 query-task1: $(DR)/trec-task1$S-all.tsv
 
 # ------------------ TASK 2 ------------------
-$(DR)/task2$S-all-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-2020.txt $(DP)/topics-task2$S-2021.txt $(DP)/topics-task2$S-2022.txt \
+$(DR)/trec-task2$S-all-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-2020.txt $(DP)/topics-task2$S-2021.txt $(DP)/topics-task2$S-2022.txt \
    $(DI)/task2_$(IY)_latex_L$(loc).mindex.meta latex_filter_stopwords.py \
    $(DP)/stopwords.txt $(DP)/judged-query-names.txt $(MS)/mtokenize.exe $(MS)/msearch.exe unicode2asii.py
 	time cat $(DP)/topics-task2$S-*.txt \
@@ -109,13 +109,10 @@ $(DR)/task2$S-all-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-2020.txt $
 		| python3 unicode2asii.py -c \
 		| $(MS)/mtokenize.exe -q -M -S $(DP)/stopwords.txt \
 		| $(MS)/msearch.exe -k1000 -M -a0.$(alpha2) $(DI)/task2_$(IY)_latex_L$(loc).mindex \
-		| awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[1]"\t"a[2]; print $$0"\tlatex_L$(loc)_a0$(alpha2)"}' \
-		> $(DR)/task2$S-all-latex_L$(loc)_a0$(alpha2).tsv
+		| awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2="Q0\t"a[3]; print $$0"\tlatex_L$(loc)_a0$(alpha2)"}' \
+		> $(DR)/trec-task2$S-all-latex_L$(loc)_a0$(alpha2).tsv
 
-$(DR)/trec-task2$S-all-%.tsv: $(DR)/task2$S-all-%.tsv dedup_task2.py
-	python3 dedup_task2.py -qre <( cat $(DO)/qrel_task2_*.tsv ) -tsv $(DO)/latex_representation_v3/ $(DR)/task2$S-all-*.tsv
-
-.PRECIOUS: $(DR)/task2$S-all-L$(loc)_a0$(alpha2).tsv $(DR)/trec-task2$S-all-%.tsv
+.PRECIOUS: $(DR)/trec-task2$S-all-%.tsv
 
 query-task2: $(DR)/trec-task2$S-all-latex_L$(loc)_a0$(alpha2).tsv
 
