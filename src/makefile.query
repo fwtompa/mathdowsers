@@ -11,7 +11,11 @@ loc = 8
 IY = 2024
 
 # ------------------ SELECT ------------------
-$(DP)/stopwords.txt: $(SW)/snowball_original.txt $(SW)/nltk.txt
+$(DR): | $(DD)
+	@echo "***** creating directory $(DR)"
+	mkdir $(DR)
+
+$(DP)/stopwords.txt: $(SW)/snowball_original.txt $(SW)/nltk.txt | $(DP)
 	printf "#(start)#\n#(end)#\ntext\namp\nalign\nst\nna\nca\n" \
 		| cat - $(SW)/snowball_original.txt $(SW)/nltk.txt | tr -d "\015" \
 		| sort -u | grep -v "^$$" > $(DP)/stopwords.txt
@@ -45,7 +49,7 @@ topics: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics
 	$(DP)/topics-task2$S-2020.txt $(DP)/topics-task2$S-2021.txt $(DP)/topics-task2$S-2022.txt
 
 $(DP)/topics-task1$S-2020.txt $(DP)/topics-task2$S-2020.txt: $(DO)/Formula_topics_latex_V2.0.tsv $(DO)/Formula_topics_slt_V2.0.tsv $(DO)/Topics_V2.0.xml tasks.awk \
-	task2.awk $(DO)/Topics_V1.1.xml
+	$(DO)/Topics_V1.1.xml task2.awk $(MT)/mathtuples/convert.py | $(DP)
 	cat $(DO)/Formula_topics_latex_V2.0.tsv <(echo "\n") $(DO)/Formula_topics_slt_V2.0.tsv $(DO)/Topics_V2.0.xml \
 		| tr -d "\r" | awk -f tasks.awk \
 		| python3 $(MT)/mathtuples/convert.py --context \
@@ -58,7 +62,7 @@ $(DP)/topics-task1$S-2020.txt $(DP)/topics-task2$S-2020.txt: $(DO)/Formula_topic
 	rm forms
 
 $(DP)/topics-task1$S-2021.txt $(DP)/topics-task2$S-2021.txt: $(DO)/Topics_2021_Formulas_Latex_V1.1.tsv $(DO)/Topics_2021_Formulas_SLT_V1.1.tsv $(DO)/Topics_Task1_2021_V1.1.xml tasks.awk \
-	$(DO)/Topics_Task2_2021_V1.1.xml task2.awk
+	$(DO)/Topics_Task2_2021_V1.1.xml task2.awk $(MT)/mathtuples/convert.py | $(DP)
 	cat $(DO)/Topics_2021_Formulas_Latex_V1.1.tsv $(DO)/Topics_2021_Formulas_SLT_V1.1.tsv $(DO)/Topics_Task1_2021_V1.1.xml \
 		| tr -d "\r" | awk -f tasks.awk \
 		| python3 $(MT)/mathtuples/convert.py --context \
@@ -71,7 +75,7 @@ $(DP)/topics-task1$S-2021.txt $(DP)/topics-task2$S-2021.txt: $(DO)/Topics_2021_F
 	rm forms
 
 $(DP)/topics-task1$S-2022.txt $(DP)/topics-task2$S-2022.txt: $(DO)/Topics_Formulas_Latex.V0.1.tsv $(DO)/Topics_Formulas_SLT.V0.1.tsv $(DO)/Topics_Task1_2022_V0.1.xml tasks.awk \
-	$(DO)/Topics_Task2_2022_V0.1.xml task2.awk
+	$(DO)/Topics_Task2_2022_V0.1.xml task2.awk $(MT)/mathtuples/convert.py | $(DP)
 	cat $(DO)/Topics_Formulas_Latex.V0.1.tsv $(DO)/Topics_Formulas_SLT.V0.1.tsv $(DO)/Topics_Task1_2022_V0.1.xml \
 		| tr -d "\r" | awk -f tasks.awk \
 		| python3 $(MT)/mathtuples/convert.py --context \
@@ -83,13 +87,13 @@ $(DP)/topics-task1$S-2022.txt $(DP)/topics-task2$S-2022.txt: $(DO)/Topics_Formul
 		> $(DP)/topics-task2$S-2022.txt
 	rm forms
 
-$(DP)/judged-query-names.txt: $(DO)/qrel_*
+$(DP)/judged-query-names.txt: $(DO)/qrel_* | $(DP)
 	cat $(DO)/qrel_* | awk '{print $$1}' | sort -u > $(DP)/judged-query-names.txt
 
 # ------------------ TASK 1 ------------------
 $(DR)/trec-task1$S-all.tsv: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics-task1$S-2022.txt \
     $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe \
-    $(DP)/keepwords.txt $(DP)/stopwords.txt stopwords-mathstem.txt unicode2ascii.py
+    $(DP)/keepwords.txt $(DP)/stopwords.txt stopwords-mathstem.txt unicode2ascii.py | $(DR)
 	time cat $(DP)/topics-task1$S-*.txt \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
 		| python3 unicode2ascii.py -c \
@@ -104,7 +108,7 @@ query-task1: $(DR)/trec-task1$S-all.tsv
 # ------------------ TASK 2 ------------------
 $(DR)/trec-task2$S-all-latex_L$(loc)_a0$(alpha2).tsv: $(DP)/topics-task2$S-2020.txt $(DP)/topics-task2$S-2021.txt $(DP)/topics-task2$S-2022.txt \
    $(DI)/task2_$(IY)_latex_L$(loc).mindex.meta latex_filter_stopwords.py \
-   $(DP)/stopwords.txt $(DP)/judged-query-names.txt $(MS)/mtokenize.exe $(MS)/msearch.exe unicode2ascii.py
+   $(DP)/stopwords.txt $(DP)/judged-query-names.txt $(MS)/mtokenize.exe $(MS)/msearch.exe unicode2ascii.py | $(DR)
 	time cat $(DP)/topics-task2$S-*.txt \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
 		| python3 unicode2ascii.py -c \

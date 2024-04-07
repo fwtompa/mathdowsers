@@ -11,11 +11,14 @@ IY = 2024
 loc = 8
 X = .xml.gz
 
-
 # ------------------ INDEX ------------------
 
+$(DI): | $(DD)
+	@echo "***** creating directory $(DI)"
+	mkdir $(DI)
+
 # --------- Task 1 ------------
-$(DP)/task1_$(CY)_L$(loc)_2010$X: $(DP)/task1_$(CY)_corpus_2010$X $(MT)/mathtuples/convert.py $(MS)/mstrip.exe
+$(DP)/task1_$(CY)_L$(loc)_2010$X: $(DP)/task1_$(CY)_corpus_2010$X $(MT)/mathtuples/convert.py $(MS)/mstrip.exe | $(DP)
 	for y in {2010..2018}; do \
 	  echo $$y ; \
 	  gunzip -c $(DP)/task1_$(CY)_corpus_$$y$X \
@@ -24,17 +27,16 @@ $(DP)/task1_$(CY)_L$(loc)_2010$X: $(DP)/task1_$(CY)_corpus_2010$X $(MT)/mathtupl
 	    | gzip -c > $(DP)/task1_$(CY)_L$(loc)_$$y$X ; \
 	  done 
 
-$(DI)/task1_$(IY)_L$(loc).mindex: $(MS)/minvert.exe $(MS)/mtokenize.exe $(DP)/task1_$(CY)_L$(loc)_2010$X unicode2ascii.py
+$(DI)/task1_$(IY)_L$(loc).mindex: $(MS)/minvert.exe $(MS)/mtokenize.exe $(DP)/task1_$(CY)_L$(loc)_2010$X unicode2ascii.py | $(DI)
 	gunzip -c $(DP)/task1_$(CY)_L$(loc)_*$X \
 	  | python3 unicode2ascii.py -c \
 	  | $(MS)/mtokenize.exe -M \
 	  | $(MS)/minvert.exe > $(DI)/task1_$(IY)_L$(loc).mindex
-	
 
 $(DI)/task1_$(IY)_L$(loc).mindex.meta: $(DI)/task1_$(IY)_L$(loc).mindex $(MS)/mencode.exe
 	$(MS)/mencode.exe $(DI)/task1_$(IY)_L$(loc).mindex
 
-$(DP)/dictionary-gt20-$(IY)-terms.tsv:  $(MS)/msearch.exe $(DI)/task1_$(IY)_L$(loc).mindex.meta
+$(DP)/dictionary-gt20-$(IY)-terms.tsv:  $(MS)/msearch.exe $(DI)/task1_$(IY)_L$(loc).mindex.meta | $(DP)
 	$(MS)/msearch.exe -dd $(DI)/task1_$(IY)_L$(loc).mindex \
 	  | grep "^[0-9][0-9]"  | grep -v "^1[0-9][^0-9]" | grep -v "^20[^0-9]" \
 	  > $(DP)/dictionary-gt20-$(IY)-terms.tsv
@@ -47,7 +49,7 @@ $(DP)/task2_$(IY)_L$(loc)$X: $(DP)/task2_$(CY)_data$X $(MT)/mathtuples/convert.p
 	  | python3 $(MT)/mathtuples/convert.py --context 2> _task2-convert-errors.tmp \
 	  | gzip -c > $(DP)/task2_$(IY)_L$(loc)$X
 
-$(DI)/task2_$(IY)_latex_L$(loc).mindex: $(MS)/minvert.exe $(DP)/task2_$(CY)_L$(loc)$X latex_filter_stopwords.py $(DO)/latex_representation_v3 unicode2ascii.py
+$(DI)/task2_$(IY)_latex_L$(loc).mindex: $(MS)/minvert.exe $(DP)/task2_$(CY)_L$(loc)$X latex_filter_stopwords.py $(DO)/latex_representation_v3 unicode2ascii.py | $(DI)
 	gunzip -c $(DP)/task2_$(CY)_L$(loc)$X \
 	  | python3 latex_filter_stopwords.py -tsv $(DO)/latex_representation_v3/ \
 	  | python3 unicode2ascii.py -c \
@@ -59,5 +61,4 @@ $(DI)/task2_$(IY)_latex_L$(loc).mindex.meta: $(DI)/task2_$(IY)_latex_L$(loc).min
 index-task2: $(DI)/task2_$(IY)_latex_L$(loc).mindex.meta
 
 index: index-task1 index-task2
-
 

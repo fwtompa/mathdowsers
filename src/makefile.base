@@ -2,6 +2,7 @@
 
 SHELL = /bin/bash
 
+DD = ../data
 DO = ../data/original
 DP = ../data/processed
 DI = ../data/index
