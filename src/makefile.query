@@ -149,3 +149,44 @@ eval-task2: eval-task2-latex_L$(loc)_a0$(alpha2)
 
 query: eval-task1 eval-task2
 
+# ------------------ SMALL INDEX ------------------
+$(DP)/task1small_DOCNOs.txt: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics-task1$S-2022.txt \
+    $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe \
+    stopwords-mathstem.txt unicode2ascii.py | $(DR)
+	cat $(DP)/topics-task1$S-*.txt \
+		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
+		| python3 unicode2ascii.py -c \
+		| $(MS)/mtokenize.exe -q -M -s stopwords-mathstem.txt \
+		| $(MS)/msearch.exe -k1200 -M -a0.$(alpha) $(DI)/task1_$(IY)_L$(loc).mindex \
+		| awk 'BEGIN{OFS="\t"} {print $$2}' \
+		| sort -u > $(DP)/task1small_DOCNOs.txt
+
+$(DP)/task1small_data.xml.gz: $(DP)/task1small_DOCNOs.txt $(MS)/util_mextract.exe
+	gunzip -c $(DP)/task1_2024_L8_*.xml.gz | $(MS)/util_mextract.exe $(DP)/task1small_DOCNOs.txt | gzip -c > $(DP)/task1small_data.xml.gz
+
+$(DI)/task1small.mindex: $(DP)/task1small_data.xml.gz $(MS)/mtokenize.exe $(MS)/minvert.exe
+	gunzip -c $(DP)/task1small_data.xml.gz \
+		| sed 's/#!T!#//;s/#!Q!#//;s/#!A!#//;s/#!X!#//' \
+		| $(MS)/mtokenize.exe -M | $(MS)/minvert.exe > $(DI)/task1small.mindex
+
+$(DI)/task1small.mindex.meta: $(DI)/task1small.mindex $(MS)/mencode.exe
+	$(MS)/mencode.exe $(DI)/task1small.mindex
+
+$(DR)/trec-task1small-all.tsv: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics-task1$S-2022.txt \
+    $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe \
+    stopwords-mathstem.txt unicode2ascii.py | $(DR)
+	time cat $(DP)/topics-task1$S-*.txt \
+		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
+		| python3 unicode2ascii.py -c \
+		| $(MS)/mtokenize.exe -q -M -s stopwords-mathstem.txt \
+		| $(MS)/msearch.exe -k1000 -M -a0.$(alpha) $(DI)/task1small.mindex \
+		| awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[3]; print $$0"\tL$(loc)_a0$(alpha)"}' \
+		| awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' \
+		> $(DR)/trec-task1small-all.tsv
+
+eval-task1small: $(DR)/trec-task1small-all.tsv $(TE)/trec_eval
+	echo task1small 2020, 2021, 2022, alpha=0.$(alpha), loc=$(loc); \
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_official_task1 $(DR)/trec-task1small-all.tsv; \
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2021_test.tsv $(DR)/trec-task1small-all.tsv; \
+	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2022_official.tsv $(DR)/trec-task1small-all.tsv
+
