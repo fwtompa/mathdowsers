@@ -1,8 +1,8 @@
 # SLT:
-# 360	11	11	title		4799524	4799524		<math alttext="0.999999999\dots=1" class="ltx_Math" display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mn>0.999999999</mn><mo>⁢</mo><mi mathvariant="normal">⋯</mi></mrow><mo>=</mo><mn>1</mn></mrow></semantics></math>
+# 360	11	11	title		4799524	<math alttext="0.999999999\dots=1" class="ltx_Math" display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mn>0.999999999</mn><mo>⁢</mo><mi mathvariant="normal">⋯</mi></mrow><mo>=</mo><mn>1</mn></mrow></semantics></math>	2010
 #
 # OPT:
-# 360	11	11	title		4799524	4799524		<math encoding="MathML-Content" xmlns="http://www.w3.org/1998/Math/MathML"><apply><eq></eq><apply><times></times><cn type="float">0.999999999</cn><ci>⋯</ci></apply><cn type="integer">1</cn></apply></math>
+# 360	11	11	title		4799524	<math encoding="MathML-Content" xmlns="http://www.w3.org/1998/Math/MathML"><apply><eq></eq><apply><times></times><cn type="float">0.999999999</cn><ci>⋯</ci></apply><cn type="integer">1</cn></apply></math>	2010
 
 # 987257  2010	1000024 1       proving that a function is uniformly continuous
 # 1383345 2010	1000025 1       Show that <span class="math-container" id="9533887">\mathbb{Z}[\sqrt{223}]</span> has three ideal classes.
@@ -19,10 +19,10 @@ BEGIN   {
 	         print "Mismatched MathML: " $0
 	         break
 	     }
-	     start = index($9,">")+1
-	     opt = substr($9,start,length($9)-start-6)
-	     slt[$3,$1,"v"] = $7
-	     slt[$3,$1,"f"] = substr(pres[9],1,length(pres[9])-19) "<annotation-xml encoding=\"MathML-Content\">" opt "</annotation-xml></semantics></math>"
+	     start = index($7,">")+1
+	     opt = substr($7,start,length($7)-start-6)
+	     slt[$3,$1,"v"] = $5
+	     slt[$3,$1,"f"] = substr(pres[7],1,length(pres[7])-19) "<annotation-xml encoding=\"MathML-Content\">" opt "</annotation-xml></semantics></math>"
 	    }
 	}
 

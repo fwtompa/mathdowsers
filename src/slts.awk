@@ -1,34 +1,33 @@
-# <math alttext="\pi" class="ltx_Math" display="block" xmlns="http://www.w3.org/1998/Math/MathML"><sema....
-/alttext=/	{
-	n = split($0,frags,"alttext=")
-	for(i=2;i<=n;i++) {
-		delim = substr(frags[i],1,1)
-		end = index(substr(frags[i],2),delim) + 1    # delim offset in frags[i]
-		alt = substr(frags[i],2,end-2)               # between delims
-		gsub(/&/,"\\&amp;",alt)
+# input format: id post_id thread_id type comment_id old_visual_id visual_id issue formula, sorted numerically by id
+#  where the formula encoding is: " <math alttext=""\pi"" class=""ltx_Math"" display=""block"" xmlns= ...
+# desired formula format: <math alttext="\pi" class="ltx_Math" display="block" xmlns="http://www.w3.org/1998/Math/MathML"><sema....
+BEGIN	{FS = "	"; OFS = "	"}
+/\\par Formula/	{next}
+/\\begin{equation/	{next}
+/\\@@eqnarray/	{next}
+	{
+	gsub(/" *<math/,"<math",$9)
+	gsub(/<\/math>.*/,"</math>",$9)
+	gsub(/""/,"\"",$9)
+	gsub(/&/,"\\&amp;",$9)
+	gsub(/<<</,"\\&lt;\\&lt;<",$9)
+	gsub(/<</,"\\&lt;<",$9)
+	gsub(/>>>/,">\\&gt;\\&gt;",$9)
+	gsub(/>>/,">\\&gt;",$9)
+	gsub(/<=</,"\\&lt;=<",$9)
+	gsub(/>"</,">\\&quot;<",$9)
+	gsub(/>'</,">\\&apos;<",$9)
+	n = index($9,"alttext=")
+	if (n>0) {
+		alttext = substr($9,n+8)
+		delim = substr(alttext,1,1)
+		end = index(substr(alttext,2),delim) + 1    # offset of delim offset at end of alttext
+		alt = substr(alttext,2,end-2)               # text between delims
 		gsub(/</,"\\&lt;",alt)
 		gsub(/>/,"\\&gt;",alt)
 		gsub(/'/,"\\&apos;",alt)
-		frags[i] = "alttext=" delim alt substr(frags[i],end)
+		$9 = substr($9,1,n+8) alt substr(alttext,end)
 		}
-	t = frags[1]
-	for(i=2;i<=n;i++) {t = t frags[i]}
-	n = split(t,frags,"<mpadded")
-	for(i=2;i<=n;i++) {
-		if(index(frags[i],"</mpadded>")>0) continue
-		sub(">","></mpadded>",frags[i])
-		}
-	t = frags[1]
-	for(i=2;i<=n;i++) {t = t "<mpadded" frags[i]}
-	print t
-	}
-!/alttext=/	{
-	n = split($0,frags,"<mpadded")
-	for(i=2;i<=n;i++) {
-		if(index(frags[i],"</mpadded>")>0) continue
-		sub(">","></mpadded>",frags[i])
-		}
-	t = frags[1]
-	for(i=2;i<=n;i++) {t = t "<mpadded" frags[i]}
-	print t
-	}
+	gsub("<mpadded[^>]*>","",$9) 		# LaTeXML does not produce </mpadded>
+	print $1, $2, $3, $4, $5, $7, $9
+	}	

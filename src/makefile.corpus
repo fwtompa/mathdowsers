@@ -24,46 +24,33 @@ F = .tsv.gz
 
 # ------------------ PREPRO ------------------
 # To preserve the header and work with the rest: command | (read -r; printf "%s\n" "$REPLY"; sort)
+$(DP)/slts$F: $(DP)/l2so$F
+	# slts table: id post_id thread_id type comment_id visual_id formula year, sorted numerically by year, thread_id, post_id, id
 
-$(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk # $(DP)/PostsToTitles$F 
+$(DP)/opts$F: $(DP)/l2so$F
+	# opts table: id post_id thread_id type comment_id visual_id formula year, sorted numerically by year, thread_id, post_id, id
+
+test $(DP)/l2so$F: $(LATEX) $(SLTS) $(OPTS) slts.awk opts.sed latex.sed $(DP)/PostsToTitles$F
 	# input format: id post_id thread_id type comment_id old_visual_id visual_id issue formula, sorted numerically by id
-	echo "id	post_id	thread_id	type	comment_id	visual_id	formula" >header
-
-	-rm form_????
-	for f in $(SLTS)/*.tsv; do  \
-	  echo $$f ; \
-	  sed "1d" < $$f | sed -f slts.sed | awk -f slts.awk | sort -t '	' -k 3,3 >t ; \
-	  grep '\\par Formula' t | sed "s/	.*//" > errors; \
-	  grep '\\begin{equation' t | sed "s/	.*//" >> errors; \
-	  grep '\\@@eqnarray' t | sed "s/	.*//" >> errors; \
-	  cat t | awk -f errors.awk >tt ; \
-	  gunzip -c $(DP)/PostsToTitles$F | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.7,1.9,2.2 tt - >ttt ; \
-	  for y in {2010..2018}; do \
-	      echo $$y ; \
-	      grep "$$y$$" ttt | sed "s/	[0-9]*$$//" >>form_$$y ; \
-	      done ; \
-	  done ; \
-	for y in {2010..2018}; do \
-	  echo $$y ; \
-	  sort -t '	' -k 3,3n -k 2,2n -k 1,1n <form_$$y | cat header - | gzip -c >$(DP)/slts_$$y$F ; \
-	  done ; \
-	rm form_????
-	for f in $(OPTS)/*.tsv; do  \
-	  echo $$f ; \
-	  sed "1d" < $$f | sed -f slts.sed | sort -t '	' -k 3,3 >t ; \
-	  cat t | awk -f errors.awk >tt ; \
-	  gunzip -c $(DP)/PostsToTitles$F | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.7,1.9,2.2 tt - >ttt ; \
-	  for y in {2010..2018}; do \
-	      echo $$y ; \
-	      grep "$$y$$" ttt | sed "s/	[0-9]*$$//" >>form_$$y ; \
-	      done ; \
-	  done ; \
-	for y in {2010..2018}; do \
-	  echo $$y ; \
-	  sort -t '	' -k 3,3n -k 2,2n -k 1,1n <form_$$y | cat header - | gzip -c >$(DP)/opts_$$y$F ; \
-	  done ; \
-	rm form_???? t tt ttt header errors
-	# output tables: id post_id thread_id type comment_id visual_id formula, sorted numerically by thread_id, post_id, id
+	echo "id	post_id	thread_id	type	comment_id	visual_id	formula	year" >header
+	for f in $(LATEX)/*.tsv; do \
+	  echo $$(basename $$f) ; \
+	  cat $$f | sed '1d;s/\r//g' | sed -f latex.sed | tr -d "\n" | tr '\a' '\n' | sort >l2s1 ; \
+	  cat $(SLTS)/$$(basename $$f) \
+	  	| sed '1d;s/\r//g' | awk -f slts.awk | sort | join -t '	' - l2s1 > l2s2 ; \
+	  cat $(OPTS)/$$(basename $$f) \
+	  	| sed '1d;s/\r//g' | sed -f opts.sed | sort | join -t '	' - l2s2 -o 1.1,1.2,1.3,1.4,1.5,2.8,2.7,1.7,1.9 | sort -t '	' -k 3,3 > l2s3 ; \
+	  cat l2s3 | sed 's/^.*	\([^	]*	[^	]*	[^	]*	[^	]*\)$$/\1/' >> l2s ; \
+	  gunzip -c $(DP)/PostsToTitles$F | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.8,1.9,2.2 l2s3 - >>opts ; \
+	  sort -t '	' -k 3,3 l2s2 > l2s3 ; \
+	  gunzip -c $(DP)/PostsToTitles$F | join -t '	' -1 3 -o 1.1,1.2,1.3,1.4,1.5,1.6,1.7,2.2 l2s3 - >>slts ; \
+	  done
+	echo "sorting"
+	sort -t '	' -k 8,8 -k 3,3n -k 2,2n -k 1,1n <slts | cat header - | gzip -c >$(DP)/slts$F
+	sort -t '	' -k 8,8 -k 3,3n -k 2,2n -k 1,1n <opts | cat header - | gzip -c >$(DP)/opts$F
+	sort -u -t "	" <l2s | gzip -c >$(DP)/l2so$F
+	rm l2s l2s1 l2s2 l2s3 slts opts header
+	# l2so tavle: no header[latex, slt, vid, opt], ordered by (unique) latex
 
 $(DP)/APosts$F: $(DP)/QPosts$F
 	# APosts table: Qid Year Aid Body, sorted numerically by Year, Qid, Aid
@@ -92,9 +79,9 @@ $(DP)/Comments$F: $(COMMENTS) $(OLDCOMMENTS) collections.sed comments.awk fields
 	rm Comments
 	# Comments table: PostId Qid Year CommentId Text, sorted numerically by Year, Qid, PostId, CommentId
 
-$(DP)/Related$F: $(LINKS) collections.sed related.awk fields.awk slts.sed slts.awk titles.awk $(DP)/PostsToTitles$F
-	grep -h "	title	" $(SLTS)/* | sed -f slts.sed | awk -f slts.awk > pmml
-	grep -h "	title	" $(OPTS)/* | sed -f slts.sed > cmml
+$(DP)/Related$F: $(LINKS) collections.sed related.awk fields.awk $(DP)/slts$F  titles.awk $(DP)/PostsToTitles$F
+	gunzip -c $(DP)/slts$F | grep -h "	title	"  > pmml
+	gunzip -c $(DP)/opts$F | grep -h "	title	"  > cmml
 	gunzip -c $(DP)/PostsToTitles$F >PostsToTitles
 	gunzip -c $(LINKS) \
 		| sed -f collections.sed | sort -t '	' -k3,3 -k4,4 -k5,5r | awk -f <(cat fields.awk related.awk ) \
@@ -106,13 +93,14 @@ $(DP)/Related$F: $(LINKS) collections.sed related.awk fields.awk slts.sed slts.a
 	# Related table: Qid Year PostId LinkType Title, sorted numerically by Year, Qid, LinkType, 
 
 # ------------------ CORPUS  ------------------
-$(DP)/task1_$(CY)_corpus_2010.xml.gz: generate_corpus.py $(DP)/QPosts$F $(DP)/Comments$F $(DP)/Related$F $(DP)/slts_2010$F template_minimal_v3.html
-	gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts_ -o $(DP)
-	#gunzip -c $(DP)/QPosts$F | grep "^[^	]*	\(Year\|2018\)	" | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts_ -o $(DP)
-	#gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts_ -O opts_ -o $(DP)
+$(DP)/task1_$(CY)_corpus_2010.xml.gz: generate_corpus.py $(DP)/QPosts$F $(DP)/Comments$F $(DP)/Related$F template_minimal_v3.html
+	#cat $(DP)/trial | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -L l2so2 -o $(DP)
+	gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -L l2so2 -o $(DP)
+	#gunzip -c $(DP)/QPosts$F | grep "^[^	]*	\(Year\|2018\)	" | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -o $(DP)
+	#gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -O opts -o $(DP)
 
-$(DP)/task2_$(CY)_data.xml.gz:  $(DP)/slts_2010$F task2_corpus.awk
-	cat $(DP)/slts*$F | gunzip -c | awk -f task2_corpus.awk | gzip > $(DP)/task2_$(CY)_data.xml.gz
+$(DP)/task2_$(CY)_data.xml.gz:  $(DP)/slts$F task2_corpus.awk
+	cat $(DP)/slts$F | gunzip -c | awk -f task2_corpus.awk | gzip > $(DP)/task2_$(CY)_data.xml.gz
 
 corpus-task1: $(DP)/task1_$(CY)_corpus_2010.xml.gz
 
