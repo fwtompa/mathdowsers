@@ -151,7 +151,7 @@ query: eval-task1 eval-task2
 
 # ------------------ SMALL INDEX ------------------
 $(DP)/task1small_DOCNOs.txt: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics-task1$S-2022.txt \
-    $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe \
+    $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta \
     stopwords-mathstem.txt unicode2ascii.py | $(DR)
 	cat $(DP)/topics-task1$S-*.txt \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
@@ -173,7 +173,7 @@ $(DI)/task1small.mindex.meta: $(DI)/task1small.mindex $(MS)/mencode.exe
 	$(MS)/mencode.exe $(DI)/task1small.mindex
 
 $(DR)/trec-task1small-all.tsv: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics-task1$S-2022.txt \
-    $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe \
+    $(DP)/judged-query-names.txt $(DI)/task1small.mindex.meta $(MS)/msearch.exe $(MS)/mtokenize.exe \
     stopwords-mathstem.txt unicode2ascii.py | $(DR)
 	time cat $(DP)/topics-task1$S-*.txt \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
