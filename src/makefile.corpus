@@ -21,16 +21,23 @@ OLDCOMMENTS = $(COLLECTION)/Comments.V1.0.xml.gz
 
 F = .tsv.gz
 
-
 # ------------------ PREPRO ------------------
 # To preserve the header and work with the rest: command | (read -r; printf "%s\n" "$REPLY"; sort)
 $(DP)/slts$F: $(DP)/l2so$F
 	# slts table: id post_id thread_id type comment_id visual_id formula year, sorted numerically by year, thread_id, post_id, id
 
+
 $(DP)/opts$F: $(DP)/l2so$F
 	# opts table: id post_id thread_id type comment_id visual_id formula year, sorted numerically by year, thread_id, post_id, id
 
-test $(DP)/l2so$F: $(LATEX) $(SLTS) $(OPTS) slts.awk opts.sed latex.sed $(DP)/PostsToTitles$F
+$(DP)/l2so$F: $(LATEX) $(SLTS) $(OPTS) slts.awk opts.sed latex.sed $(DP)/PostsToTitles$F
+
+$(DP): | $(DD)
+	echo "***** creating directory $(DP)"
+	mkdir $(DP)
+
+$(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk | $(DP) # $(DP)/PostsToTitles$F
+
 	# input format: id post_id thread_id type comment_id old_visual_id visual_id issue formula, sorted numerically by id
 	echo "id	post_id	thread_id	type	comment_id	visual_id	formula	year" >header
 	for f in $(LATEX)/*.tsv; do \
@@ -61,7 +68,7 @@ $(DP)/PostsToThreads$F: $(DP)/QPosts$F
 $(DP)/PostsToTitles$F: $(DP)/QPosts$F
 	# PostsToTitles table: noheader[PostId Year Title], sorted lexicographically by PostId (for joining with Related and Formulas)
 
-$(DP)/QPosts$F: $(POSTS) collections.sed posts.awk fields.awk
+$(DP)/QPosts$F: $(POSTS) collections.sed posts.awk fields.awk | $(DP)
 	gunzip -c $(POSTS) | sed "s/\" *\/>$$/&\r/" | tr "\012\015" " \012" \
 		| sed -f collections.sed | awk -f <( cat fields.awk posts.awk ) |  sort -t '	' -k 2,2n -k 1,1n | gzip -c >$(DP)/QPosts$F
 	join -t '	' -o 1.1,2.2,1.2,1.3 APosts PostsToTitles | sort -t '	' -k 2,2n -k 1,1n -k3,3n | cat <( echo "Qid	Year	Aid	Body" ) - | gzip -c >$(DP)/APosts$F

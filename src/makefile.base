@@ -2,6 +2,7 @@
 
 SHELL = /bin/bash
 
+DD = ../data
 DO = ../data/original
 DP = ../data/processed
 DI = ../data/index
@@ -12,6 +13,9 @@ MS = ../mtextsearch
 TE = ../trec_eval
 SW = ../stopwords/en
 
+ifneq ($(origin LANG),undefined)
+  $(error ENV LANG - Internationalization breaks corpus generation)
+endif
 
 .PRECIOUS: $(MS)/%.exe
 

@@ -59,12 +59,13 @@ def main():
     else:
         with sys.stdin as fin:
             for line in fin:
+                print(line.partition(' ')[0], end=' ')
                 splits = re.findall('alttext="(([^"]|\\")*?)" ',line)
                 for sp in splits:
                      sp = stop_text(sp[0].strip())
                      if (sp != ""):
-                          print(sp)
-                print(line, end='')
+                          print(sp, end=' ')
+                print(line.partition(' ')[2], end='')
     #print(stop_text(line.strip()))
 
 

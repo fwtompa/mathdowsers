@@ -1,13 +1,17 @@
 [submodule "mathtuples"]
 	path = mathtuples
 	url = https://github.com/fwtompa/mathtuples
+	branch = main
 [submodule "mtextsearch"]
 	path = mtextsearch
 	url = https://github.com/andrewrkane/mtextsearch
+	branch = main
 [submodule "trec_eval"]
 	path = trec_eval
 	url = https://github.com/usnistgov/trec_eval
 	ignore = dirty
+	branch = main
 [submodule "stopwords"]
 	path = stopwords
 	url = https://github.com/igorbrigadir/stopwords
+	branch = main
