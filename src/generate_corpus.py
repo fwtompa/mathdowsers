@@ -23,6 +23,7 @@ import csv
 import math
 import argparse
 import sys
+import re
 from llist import dllist
 
 csv.field_size_limit(100000000)
@@ -239,53 +240,55 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
                     if cmml and not pmml:
                         rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
                     frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + FormDict[id][0] + '">' + rform + f[endspan:]
-                    LFormDict[lx] = [rform,FormDict[id][0]]
-                    if lx in cache:
-                        pq.remove(cache[lx])  # move to end
-                        # print("moving '" + lx + "' and LRU is " + cache[0] ,file=sys.stderr)
-                    cache[lx] = pq.insert(lx)
-                    if len(cache) > 10000: # keep the last k latex formulas in reverse LRU order
-                        # print("delete '" + cache[0] + "'",file=sys.stderr)
-                        lx = pq.popleft()
-                        del LFormDict[lx]
-                        del cache[lx]
+                    if not re.search(r"[a-zA-Z]",lx): # all corpus LaTeX expressions with alphabetics are in SLT
+                       LFormDict[lx] = [rform,FormDict[id][0]]
+                       if lx in cache:
+                           pq.remove(cache[lx])  # move to end
+                           # print("moving '" + lx + "' and LRU is " + cache[0] ,file=sys.stderr)
+                       cache[lx] = pq.insert(lx)
+                       if len(cache) > 10000: # keep the last k latex formulas in reverse LRU order
+                           # print("delete '" + cache[0] + "'",file=sys.stderr)
+                           lx = pq.popleft()
+                           del LFormDict[lx]
+                           del cache[lx]
 
                 else: # id does not match any formula
                     #print("No matching formula: "+ str(Qid) + " " + str(Aid) +f,file=sys.stderr)
                     #raise("nomatch")
-                    if lx in LFormDict:
-                        rform = LFormDict[lx][0]
-                        if cmml and not pmml:
-                            rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
-                        frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + LFormDict[lx][1] + '">' + rform + f[endspan:]
-                        FDcnt = FDcnt + 1
-                        # print("has id but found in LFormDict: " + rform,file=sys.stderr)
-                    elif lx in SLT:
+
+                    if lx in SLT:
                         rform = SLT[lx][0]
                         if cmml and not pmml:
                             rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
                         frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + SLT[lx][1] + '">' + rform + f[endspan:]
                         sltcnt = SLTcnt + 1
                         # print("has id but found in SLT: " + rform,file=sys.stderr)
+                    elif lx in LFormDict:
+                        rform = LFormDict[lx][0]
+                        if cmml and not pmml:
+                            rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
+                        frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + LFormDict[lx][1] + '">' + rform + f[endspan:]
+                        FDcnt = FDcnt + 1
+                        # print("has id but found in LFormDict: " + rform,file=sys.stderr)
                     else:
                         frags[i] = '<span class="math-container"' + f
                         nofcnt = nofcnt + 1
                         # print("Formula " + id + " not found for Q " + str(Qid) + " when mathifying " + frags[i] + " in " + s,file=sys.stderr)
             else: # no id for the formula
-                if lx in LFormDict:
-                    rform = LFormDict[lx][0]
-                    if cmml and not pmml:
-                        rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
-                    frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + LFormDict[lx][1] + '">' + rform + f[endspan:]
-                    FDcnt = FDcnt + 1
-                    # print("no id but found in LFormDict: " + rform,file=sys.stderr)
-                elif lx in SLT:
+                if lx in SLT:
                     rform = SLT[lx][0]
                     if cmml and not pmml:
                         rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
                     frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + SLT[lx][1] + '">' + rform + f[endspan:]
                     SLTcnt = SLTcnt + 1
                     # print("no id but found in SLT: " + rform,file=sys.stderr)
+                elif lx in LFormDict:
+                    rform = LFormDict[lx][0]
+                    if cmml and not pmml:
+                        rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
+                    frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + LFormDict[lx][1] + '">' + rform + f[endspan:]
+                    FDcnt = FDcnt + 1
+                    # print("no id but found in LFormDict: " + rform,file=sys.stderr)
                 else:
                     frags[i] = '<span class="math-container"' + f
                     nofcnt = nofcnt + 1
@@ -648,4 +651,4 @@ if __name__ == '__main__':
     generate_files(indir, args.aposts, args.comments, args.related,
             outdir, args.l2pc, args.pmml, args.cmml, args.CY)
     print("</corpus> Loaded corpus into {0}.".format(outdir if outdir else "stdout"),file=sys.stderr)
-    print(str(fcnt) + " math exprs in all: " + str(ltxcnt) + " found as LaTeX; " + str(SLTcnt) + " resolved in dict; " + str(FDcnt) + " resolved in cache; " + str(nofcnt) + " not resolved")
+    print(str(fcnt) + " math exprs in all: " + str(ltxcnt) + " found as LaTeX; " + str(SLTcnt) + " resolved in dict; " + str(FDcnt) + "resolved from cache; " + str(nofcnt) + " not resolved")

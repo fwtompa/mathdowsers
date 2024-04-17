@@ -20,24 +20,21 @@ COMMENTS = $(COLLECTION)/Comments.$V.xml.gz
 OLDCOMMENTS = $(COLLECTION)/Comments.V1.0.xml.gz
 
 F = .tsv.gz
-
+ 
 # ------------------ PREPRO ------------------
 # To preserve the header and work with the rest: command | (read -r; printf "%s\n" "$REPLY"; sort)
-$(DP)/slts$F: $(DP)/l2so$F
-	# slts table: id post_id thread_id type comment_id visual_id formula year, sorted numerically by year, thread_id, post_id, id
+$(DP)/l2so$F: $(DP)/slts$F
+	# l2so tavle: no header[latex, slt, vid, opt], ordered by (unique) latex
 
-
-$(DP)/opts$F: $(DP)/l2so$F
+$(DP)/opts$F: $(DP)/slts$F
 	# opts table: id post_id thread_id type comment_id visual_id formula year, sorted numerically by year, thread_id, post_id, id
 
-$(DP)/l2so$F: $(LATEX) $(SLTS) $(OPTS) slts.awk opts.sed latex.sed $(DP)/PostsToTitles$F
 
 $(DP): | $(DD)
 	@echo "***** creating directory $(DP)"
 	mkdir $(DP)
 
-$(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk | $(DP) # $(DP)/PostsToTitles$F
-
+$(DP)/slts$F: $(LATEX) $(SLTS) $(OPTS) slts.awk opts.sed latex.sed $(DP)/PostsToTitles$F | $(DP)
 	# input format: id post_id thread_id type comment_id old_visual_id visual_id issue formula, sorted numerically by id
 	echo "id	post_id	thread_id	type	comment_id	visual_id	formula	year" >header
 	for f in $(LATEX)/*.tsv; do \
@@ -55,9 +52,9 @@ $(DP)/slts_2010$F: $(SLTS)/*.tsv $(OPTS)/*.tsv slts.sed slts.awk errors.awk | $(
 	@echo "sorting"
 	sort -t '	' -k 8,8 -k 3,3n -k 2,2n -k 1,1n <slts | cat header - | gzip -c >$(DP)/slts$F
 	sort -t '	' -k 8,8 -k 3,3n -k 2,2n -k 1,1n <opts | cat header - | gzip -c >$(DP)/opts$F
-	sort -u -t "	" <l2s | gzip -c >$(DP)/l2so$F
+	sort -u -t "	" <l2s | grep "[^	]*[a-zA-Z] | gzip -c >$(DP)/l2so$F
 	rm l2s l2s1 l2s2 l2s3 slts opts header
-	# l2so tavle: no header[latex, slt, vid, opt], ordered by (unique) latex
+	# slts table: id post_id thread_id type comment_id visual_id formula year, sorted numerically by year, thread_id, post_id, id
 
 $(DP)/APosts$F: $(DP)/QPosts$F
 	# APosts table: Qid Year Aid Body, sorted numerically by Year, Qid, Aid
@@ -101,10 +98,10 @@ $(DP)/Related$F: $(LINKS) collections.sed related.awk fields.awk $(DP)/slts$F  t
 
 # ------------------ CORPUS  ------------------
 $(DP)/task1_$(CY)_corpus_2010.xml.gz: generate_corpus.py $(DP)/QPosts$F $(DP)/Comments$F $(DP)/Related$F template_minimal_v3.html
-	#cat $(DP)/trial | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -L l2so2 -o $(DP)
-	gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -L l2so2 -o $(DP)
-	#gunzip -c $(DP)/QPosts$F | grep "^[^	]*	\(Year\|2018\)	" | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -o $(DP)
-	#gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -O opts -o $(DP)
+	#cat $(DP)/trial | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -L l2so -o $(DP)
+	gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -L l2so -o $(DP)
+	#gunzip -c $(DP)/QPosts$F | grep "^[^	]*	\(Year\|2015\)	" | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -L l2so -o $(DP)
+	#gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S slts -O opts -L l2so -o $(DP)
 
 $(DP)/task2_$(CY)_data.xml.gz:  $(DP)/slts$F task2_corpus.awk
 	cat $(DP)/slts$F | gunzip -c | awk -f task2_corpus.awk | gzip > $(DP)/task2_$(CY)_data.xml.gz
