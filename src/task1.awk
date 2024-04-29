@@ -126,14 +126,13 @@ function text(s,	 n, spanend, f, fid, endspan, frag, latex) {
 		}
 	    f = index(frag[i],"id=") + 4
 	    fid = substr(frag[i],f,spanend-f-1)
-	    if(fid in form) {
+	    if(f > 0 && fid in form) {
 	        s = s "<span " substr(frag[i],1,spanend) form[fid] substr(frag[i],endspan)
 		lastfid = fid
                 }
 	    else {
 	        latex = get_latex(substr(frag[i],spanend+1,endspan-spanend-1))
 	        if (latex in qid) {
-		    form[fid] = form[qid[latex]]
 		    s = s "<span " substr(frag[i],1,spanend) form[qid[latex]] substr(frag[i],endspan)
 		    }
 		else {

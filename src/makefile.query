@@ -48,10 +48,10 @@ stopwords-mathstem.txt: stopwords.txt keywords.txt unicode2ascii.py
 topics: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics-task1$S-2022.txt \
 	$(DP)/topics-task2$S-2020.txt $(DP)/topics-task2$S-2021.txt $(DP)/topics-task2$S-2022.txt
 
-$(DP)/topics-task1$S-2020.txt $(DP)/topics-task2$S-2020.txt: $(DO)/Formula_topics_latex_V2.0.tsv $(DO)/Formula_topics_slt_V2.0.tsv $(DO)/Topics_V2.0.xml tasks.awk \
+$(DP)/topics-task1$S-2020.txt $(DP)/topics-task2$S-2020.txt: $(DO)/Formula_topics_latex_V2.0.tsv $(DO)/Formula_topics_slt_V2.0.tsv $(DO)/Topics_V2.0.xml task1.awk \
 	$(DO)/Topics_V1.1.xml task2.awk $(MT)/mathtuples/convert.py | $(DP)
 	cat $(DO)/Formula_topics_latex_V2.0.tsv <(echo "\n") $(DO)/Formula_topics_slt_V2.0.tsv $(DO)/Topics_V2.0.xml \
-		| tr -d "\r" | awk -f tasks.awk \
+		| tr -d "\r" | awk -f task1.awk \
 		| python3 $(MT)/mathtuples/convert.py --context \
 		| sed "s/<[^>]*>/ /g;s/&[^;]*;/ /g;s/  */ /g" \
 		> $(DP)/topics-task1$S-2020.txt
@@ -61,10 +61,10 @@ $(DP)/topics-task1$S-2020.txt $(DP)/topics-task2$S-2020.txt: $(DO)/Formula_topic
 		> $(DP)/topics-task2$S-2020.txt
 	rm forms
 
-$(DP)/topics-task1$S-2021.txt $(DP)/topics-task2$S-2021.txt: $(DO)/Topics_2021_Formulas_Latex_V1.1.tsv $(DO)/Topics_2021_Formulas_SLT_V1.1.tsv $(DO)/Topics_Task1_2021_V1.1.xml tasks.awk \
+test $(DP)/topics-task1$S-2021.txt $(DP)/topics-task2$S-2021.txt: $(DO)/Topics_2021_Formulas_Latex_V1.1.tsv $(DO)/Topics_2021_Formulas_SLT_V1.1.tsv $(DO)/Topics_Task1_2021_V1.1.xml task1.awk \
 	$(DO)/Topics_Task2_2021_V1.1.xml task2.awk $(MT)/mathtuples/convert.py | $(DP)
 	cat $(DO)/Topics_2021_Formulas_Latex_V1.1.tsv $(DO)/Topics_2021_Formulas_SLT_V1.1.tsv $(DO)/Topics_Task1_2021_V1.1.xml \
-		| tr -d "\r" | awk -f tasks.awk \
+		| tr -d "\r" | awk -f task1.awk \
 		| python3 $(MT)/mathtuples/convert.py --context \
 		| sed "s/<[^>]*>/ /g;s/&[^;]*;/ /g;s/  */ /g" \
 		> $(DP)/topics-task1$S-2021.txt
@@ -74,10 +74,10 @@ $(DP)/topics-task1$S-2021.txt $(DP)/topics-task2$S-2021.txt: $(DO)/Topics_2021_F
 		> $(DP)/topics-task2$S-2021.txt
 	rm forms
 
-$(DP)/topics-task1$S-2022.txt $(DP)/topics-task2$S-2022.txt: $(DO)/Topics_Formulas_Latex.V0.1.tsv $(DO)/Topics_Formulas_SLT.V0.1.tsv $(DO)/Topics_Task1_2022_V0.1.xml tasks.awk \
+$(DP)/topics-task1$S-2022.txt $(DP)/topics-task2$S-2022.txt: $(DO)/Topics_Formulas_Latex.V0.1.tsv $(DO)/Topics_Formulas_SLT.V0.1.tsv $(DO)/Topics_Task1_2022_V0.1.xml task1.awk \
 	$(DO)/Topics_Task2_2022_V0.1.xml task2.awk $(MT)/mathtuples/convert.py | $(DP)
 	cat $(DO)/Topics_Formulas_Latex.V0.1.tsv $(DO)/Topics_Formulas_SLT.V0.1.tsv $(DO)/Topics_Task1_2022_V0.1.xml \
-		| tr -d "\r" | awk -f tasks.awk \
+		| tr -d "\r" | awk -f task1.awk \
 		| python3 $(MT)/mathtuples/convert.py --context \
 		| sed "s/<[^>]*>/ /g;s/&[^;]*;/ /g;s/  */ /g" \
 		> $(DP)/topics-task1$S-2022.txt
@@ -93,11 +93,11 @@ $(DP)/judged-query-names.txt: $(DO)/qrel_* | $(DP)
 # ------------------ TASK 1 ------------------
 $(DR)/trec-task1$S-all.tsv: $(DP)/topics-task1$S-2020.txt $(DP)/topics-task1$S-2021.txt $(DP)/topics-task1$S-2022.txt \
     $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe \
-    $(DP)/keepwords.txt $(DP)/stopwords.txt stopwords-mathstem.txt unicode2ascii.py | $(DR)
+    $(DP)/keepwords.txt $(DP)/stopwords.txt keywords/keepwords.txt unicode2ascii.py | $(DR)
 	time cat $(DP)/topics-task1$S-*.txt \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
 		| python3 unicode2ascii.py -c \
-		| $(MS)/mtokenize.exe -q -M -s stopwords-mathstem.txt \
+		| $(MS)/mtokenize.exe -q -M -S keywords/stopwords.txt -T keywords/keepwords.txt \
 		| $(MS)/msearch.exe -k1000 -M -a0.$(alpha) $(DI)/task1_$(IY)_L$(loc).mindex \
 		| awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[3]; print $$0"\tL$(loc)_a0$(alpha)"}' \
 		| awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' \
@@ -131,11 +131,12 @@ $(TE)/trec_eval:
 
 .PRECIOUS: $(TE)/trec_eval
 
-eval-task1-%: query-task1 $(TE)/trec_eval
-	echo task1 2020, 2021, 2022, alpha=0.$(alpha), loc=$(loc); \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_official_task1 $(DR)/trec-task1$S-all.tsv; \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2021_test.tsv $(DR)/trec-task1$S-all.tsv; \
-	$(TE)/trec_eval -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2022_official.tsv $(DR)/trec-task1$S-all.tsv
+eval-task1-%: $(DR)/trec-task1$S-all.tsv $(TE)/trec_eval
+	echo task1 2020, 2021, 2022, alpha=0.$(alpha), loc=$(loc) > $(DR)/trec-task1-scores.txt ; \
+	$(TE)/trec_eval -q -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_official_task1 $(DR)/trec-task1$S-all.tsv >> $(DR)/trec-task1-scores.txt  ; \
+	$(TE)/trec_eval -q  -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2021_test.tsv $(DR)/trec-task1$S-all.tsv >> $(DR)/trec-task1-scores.txt  ; \
+	$(TE)/trec_eval -q -l2 -m num_q -m ndcg -m P.10 -m map -J $(DO)/qrel_task1_2022_official.tsv $(DR)/trec-task1$S-all.tsv >> $(DR)/trec-task1-scores.txt ; \
+	grep all $(DR)/trec-task1-scores.txt 
 
 eval-task2-%: query-task2 $(TE)/trec_eval
 	echo task2 2020, 2021, 2022; \
