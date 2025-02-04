@@ -14,4 +14,4 @@
 [submodule "stopwords"]
 	path = stopwords
 	url = https://github.com/igorbrigadir/stopwords
-	branch = main
+	branch = master

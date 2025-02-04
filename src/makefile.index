@@ -1,12 +1,12 @@
 # makefile to build indexes for ARQMath-3 data.  To run things in parallel run: make -j #
 
-all_index: index
+all_index: index-task1
 
 include makefile.base
 
 # CY = corpus year and IY = index year
-CY = 2024
-IY = 2024
+CY = 2025
+IY = 2025
 
 loc = 8
 X = .xml.gz
@@ -18,11 +18,10 @@ $(DI): | $(DD)
 	mkdir $(DI)
 
 # --------- Task 1 ------------
-$(DP)/task1_$(CY)_L$(loc)_2010$X: $(DP)/task1_$(CY)_corpus_2010$X $(MT)/mathtuples/convert.py $(MS)/mstrip.exe | $(DP)
+$(DP)/task1_$(CY)_L$(loc)_2010$X: $(DP)/task1_$(CY)_corpus_2010$X $(MS)/mstrip.exe | $(DP)
 	for y in {2010..2018}; do \
 	  echo $$y ; \
 	  gunzip -c $(DP)/task1_$(CY)_corpus_$$y$X \
-            | python3 $(MT)/mathtuples/convert.py --context \
 	    | $(MS)/mstrip.exe \
 	    | python3 unicode2ascii.py -c \
 	    | gzip -c > $(DP)/task1_$(CY)_L$(loc)_$$y$X ; \
@@ -45,13 +44,8 @@ $(DP)/dictionary-gt20-$(IY)-terms.tsv:  $(MS)/msearch.exe $(DI)/task1_$(IY)_L$(l
 index-task1: $(DP)/dictionary-gt20-$(IY)-terms.tsv
 
 # --------- Task 2 ------------
-$(DP)/task2_$(IY)_L$(loc)$X: $(DP)/task2_$(CY)_data$X $(MT)/mathtuples/convert.py
-	gunzip -c $(DP)/task2_$(CY)_data$X \
-	  | python3 $(MT)/mathtuples/convert.py --context 2> _task2-convert-errors.tmp \
-	  | gzip -c > $(DP)/task2_$(IY)_L$(loc)$X
-
-$(DI)/task2_$(IY)_latex_L$(loc).mindex: $(MS)/minvert.exe $(DP)/task2_$(CY)_L$(loc)$X latex_filter_stopwords.py $(DO)/latex_representation_v3 unicode2ascii.py | $(DI)
-	time gunzip -c $(DP)/task2_$(CY)_L$(loc)$X \
+$(DI)/task2_$(IY)_latex_L$(loc).mindex: $(MS)/minvert.exe $(DP)/task2_$(CY)_data$X latex_filter_stopwords.py $(DO)/latex_representation_v3 unicode2ascii.py | $(DI)
+	time gunzip -c $(DP)/task2_$(CY)_data$X \
 	  | python3 latex_filter_stopwords.py -tsv $(DO)/latex_representation_v3/ \
 	  | python3 unicode2ascii.py -c \
 	  | $(MS)/minvert.exe > $(DI)/task2_$(IY)_latex_L$(loc).mindex

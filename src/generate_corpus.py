@@ -24,7 +24,7 @@ import math
 import argparse
 import sys
 import re
-from llist import dllist
+import dbm
 
 csv.field_size_limit(100000000)
 
@@ -32,6 +32,12 @@ MINIMAL_HTML = "template_minimal_v3.html"
 INPUT_FORMAT = ".tsv.gz"
 OUTPUT_FORMAT = ".xml.gz"
 ENCODING = "utf-8"
+SLTstart = "#(start)#"
+SLTend = "#(end)#"
+OPTstart = "<math "
+OPTend = "</math>"
+AN = "AN"
+NAN = "NAN"
 
 # globals set or used in functions
 formula=None; Fid=None; FTid=-1; visual=None; firstF = False
@@ -40,120 +46,13 @@ Qid=0; latex_title=None; title=None; question=None; tags=None; Os = None; Ss = N
 ThreadId=-1; Aid=None; answer=None; firstA=None; Ayear = "0000"
 Cid=None; Tid=-1; comment=None; firstC = False; Cyear = "0000"
 Rid=-1; rel_type=None; Rtitle=None; firstR = False; Ryear = "0000"
-SLT = {}; OPT = {} ; cache = {}; pq = dllist()
+SLT = {}; OPT = {} ; cache = {}
 SLTcnt = 0; FDcnt = 0; ltxcnt = 0; nofcnt = 0; fcnt = 0
 
 
-def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
+def generate_files(indir, aposts, comments, rels, outdir, pmml, cmml, CY):
     # qposts come from stdin
-    global SLT, OPT, cache, pq, SLTcnt, FDcnt, ltxcnt, nofcnt, fcnt, FormDict, LFormDict
-
-    def nextF(pmml,cmml):
-        # output tables: id post_id thread_id type comment_id visual_id formula year, sorted numerically by year, thread_id, post_id, id
-        global formula, Fid, FTid, visual, firstF
-        # print("nextF",file=sys.stderr)
-        if FTid == math.inf:
-            return
-        if firstF:          # already read first record
-            if FTid <= Qid:
-                firstF = False
-            if FTid >= Qid:
-                return(True)
-        else:
-            if Qid < FTid:
-                print("Impossible: Qid: " + str(Qid) + " < FTid: " + str(FTid),file=sys.stderr)
-        if pmml:
-            if Qid == FTid:
-                try:
-                    S = next(Ss)
-                except:
-                    FTid = math.inf
-                    return(False)
-                FTid = int(S["thread_id"])
-            else:
-                while Qid > FTid:
-                    try:
-                        S = next(Ss)
-                    except:
-                        FTid = math.inf
-                        return(False)
-                    FTid = int(S["thread_id"])
-            Fid = S["id"]
-            visual = S["visual_id"]
-            Sform = S["formula"]
-            if cmml:		# both SLT and OPT requested
-                OFid = "0";
-                while OFid != Fid:     # move up to the corresponding formula
-                    try:
-                        O = next(Os)
-                    except:
-                        FTid = math.inf
-                        return(False)
-                    OFid = O["id"]
-                # SLT: <math alttext="0.999999999\dots=1" class="ltx_Math" display="block"
-                #               xmlns="http://www.w3.org/1998/Math/MathML"><semantics>...</semantics></math>
-                # OPT: <math encoding="MathML-Content" xmlns="http://www.w3.org/1998/Math/MathML">...</math>
-                Cform = O["formula"]
-                if Cform:
-                    Cform = Cform[Cform.index(">")+1:-7]               
-                    formula = Sform[0:-19] + '<annotation-xml encoding="MathML-Content">' + Cform + '</annotation-xml></semantics></math>'
-                else:
-                    formula = Sform
-            else:		# only SLT requested
-                formula = Sform
-        else:
-            if cmml:		# only OPT requested
-                if Qid == FTid:
-                    try:
-                        O = next(Os)
-                    except:
-                        FTid = math.inf
-                        return(False)
-                    FTid = int(O["thread_id"])
-                else:
-                    while Qid > FTid:
-                        try:
-                            O = next(Os)
-                        except:
-                            FTid = math.inf
-                            return(False)
-                        FTid = int(O["thread_id"])
-                Fid = O["id"]
-                visual = O["visual_id"]
-                formula = O["formula"]
-            else:
-                formula = None
-        if FTid > Qid:
-            firstF = True
-        #if formula:
-        #    print("nextF: " + str(FTid) + "/" + (Fid) + "/" + visual + " = " + formula, flush=True,file=sys.stderr)
-        #else:
-        #    print("no formulas",file=sys.stderr)
-        #if not formula:
-        #    print("formula is None: " + Fid + " in thread " + str(FTid),file=sys.stderr)
-        return(True) 
-
-    def getFormulas(pmml,cmml):
-        global FormDict
-        # create a dictionary of formulas
-        #if Qid == 2682503:
-        #    print("Get formulas for Qid " + str(Qid), flush=True,file=sys.stderr)
-        if not pmml and not cmml:
-            return
-        FormDict.clear()
-        nextF(pmml,cmml)        # find the first corresponding formulas
-        #if Qid == 2682503:
-        #    print("First formula id: " + Fid + " for thread: " + str(Qid),file=sys.stderr)
-        while FTid == Qid:      # read all the corresponding formulas
-            if formula:
-                FormDict[Fid] = [visual,formula]
-            nextF(pmml,cmml)
-        #if Qid == 2682503:
-        #    print("Not including formula id: " + Fid + " for Q " + str(Qid),file=sys.stderr)
-        #    for k in FormDict.keys():
-        #        print(k + " -> " + FormDict[k][1], flush=True,file=sys.stderr)
-        return
-
+    global SLT, OPT, cache, SLTcnt, FDcnt, ltxcnt, nofcnt, fcnt, FormDict, LFormDict, AN, NAN
 
     def unmathify(s):
         # <span class="math-container" id="1294">p(n \xi)</span> -> $p(n \xi)$
@@ -170,6 +69,7 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
             global ltxcnt
             # preconditions: t contains a $ and does not contain any recognized math expressions
             # postcondition: potential math expressions marked by <span .... </span>
+            # print("latex found: "+t,file=sys.stderr)
             pieces = t.split("$")
             escaped = False
             if pieces[0] and pieces[0][-1] == "\\":
@@ -201,7 +101,7 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
             return "".join(pieces)
 
 
-        if len(FormDict) == 0 or not s: # no dictionary entries or no string, so leave formulas unchanged
+        if not s or (not pmml and not cmml): # no string or no conversion requested, so leave formulas unchanged
             return(s)
         
         if s.find("$"):
@@ -218,7 +118,7 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
                         frags[i] = f[0:endspan] + replace_latex(f[endspan:])
             s ='<span class="math-container"'.join(frags)
 
-        # now try to insert <math...</math>
+        # now try to insert math expression
         frags = s.split('<span class="math-container"')
         #if len(frags) > 1:
         #    print("mathify " + str(len(frags)-1) + " formula(s): " + s, flush=True,file=sys.stderr)
@@ -230,68 +130,21 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
                 # print("NO MATCHING </span> IN " + f + " FOR " + s,file=sys.stderr)
                 continue
             fcnt = fcnt + 1
-            lx = f[endtag+1:endspan]   # latex expression
-            alttext = '<math alttext="' + lx  + '"'
-            hasid = f.find('id="')
-            if hasid >= 0:
-                id = f[hasid+4 : endtag-1]
-                if id in FormDict:
-                    rform = FormDict[id][1]
-                    if cmml and not pmml:
-                        rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
-                    frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + FormDict[id][0] + '">' + rform + f[endspan:]
-                    if not re.search(r"[a-zA-Z]",lx): # all corpus LaTeX expressions with alphabetics are in SLT
-                       LFormDict[lx] = [rform,FormDict[id][0]]
-                       if lx in cache:
-                           pq.remove(cache[lx])  # move to end
-                           # print("moving '" + lx + "' and LRU is " + cache[0] ,file=sys.stderr)
-                       cache[lx] = pq.insert(lx)
-                       if len(cache) > 10000: # keep the last k latex formulas in reverse LRU order
-                           # print("delete '" + cache[0] + "'",file=sys.stderr)
-                           lx = pq.popleft()
-                           del LFormDict[lx]
-                           del cache[lx]
-
-                else: # id does not match any formula
-                    #print("No matching formula: "+ str(Qid) + " " + str(Aid) +f,file=sys.stderr)
-                    #raise("nomatch")
-
-                    if lx in SLT:
-                        rform = SLT[lx][0]
-                        if cmml and not pmml:
-                            rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
-                        frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + SLT[lx][1] + '">' + rform + f[endspan:]
-                        sltcnt = SLTcnt + 1
-                        # print("has id but found in SLT: " + rform,file=sys.stderr)
-                    elif lx in LFormDict:
-                        rform = LFormDict[lx][0]
-                        if cmml and not pmml:
-                            rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
-                        frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + LFormDict[lx][1] + '">' + rform + f[endspan:]
-                        FDcnt = FDcnt + 1
-                        # print("has id but found in LFormDict: " + rform,file=sys.stderr)
-                    else:
-                        frags[i] = '<span class="math-container"' + f
-                        nofcnt = nofcnt + 1
-                        # print("Formula " + id + " not found for Q " + str(Qid) + " when mathifying " + frags[i] + " in " + s,file=sys.stderr)
-            else: # no id for the formula
-                if lx in SLT:
-                    rform = SLT[lx][0]
-                    if cmml and not pmml:
-                        rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
-                    frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + SLT[lx][1] + '">' + rform + f[endspan:]
-                    SLTcnt = SLTcnt + 1
-                    # print("no id but found in SLT: " + rform,file=sys.stderr)
-                elif lx in LFormDict:
-                    rform = LFormDict[lx][0]
-                    if cmml and not pmml:
-                        rform = alttext + rform[5:] # insert LaTeX as alttext into <math header
-                    frags[i] = '<span class="math-container"' + f[0:endtag]  + ' visual_id="' + LFormDict[lx][1] + '">' + rform + f[endspan:]
-                    FDcnt = FDcnt + 1
-                    # print("no id but found in LFormDict: " + rform,file=sys.stderr)
-                else:
-                    frags[i] = '<span class="math-container"' + f
-                    nofcnt = nofcnt + 1
+            lx = f[endtag+1:endspan].strip()   # latex expression
+            lx = lx.replace("&amp;","&").replace("&apos;","'").replace("&quot;",'"').replace("&#39;","'").replace("&lt;","<").replace("&gt;",">")
+            if len(lx) == 0:
+                continue
+            MML = latexAN if lx[0].isalnum() else latexNAN
+            if lx.encode() in MML:
+                row = MML[lx.encode()].decode().split('\t')
+                rform = (row[1] if pmml else "") + " " + (row[2] if cmml else "")
+                frags[i] = '<span class="math-container"' + f[:endtag] + " visual_id=\"" + row[0] + "\">" + rform.strip() + f[endspan:]
+                SLTcnt = SLTcnt + 1
+                # print("latex replaced by: " + rform,file=sys.stderr)
+            else:
+                # print("not found: $" + lx + "$",file=sys.stderr)
+                frags[i] = '<span class="math-container"' + f
+                nofcnt = nofcnt + 1
         return "".join(frags)
 
     def nextQ(pmml,cmml):
@@ -309,7 +162,6 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
         Qid = int(Q["Qid"])
         year = Q["Year"]
         # print("Get new formulas",file=sys.stderr)
-        getFormulas(pmml,cmml)               # read all formulas for the thread, since some are missing ids and some have spurious ids
         if firstA and ThreadId == Qid:
             answer = mathify(answer)    # apply formulas to read-ahead answer and comment
         if firstC and Tid == Qid:
@@ -446,35 +298,7 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
                 Rid = int(R["Qid"])
                 Ryear = R["Year"]
         rel_type = int(R["LinkType"])
-        # <span class="math-container" id="229985"><math alttext="9!!!!!!!! !" class="ltx_Math" display="block" xmlns="http://www.w3.org/1998/Math/MathML">
-        # <semantics><mrow>...</mrow><annotation-xml encoding="MathML-Content">...</annotation-xml></semantics></math></span>
-        title = R["Title"]
-        if pmml:
-            if not cmml:
-                frags = title.split("<annotation-xml ")
-                for i in range(1,len(frags)):
-                   f = frags[i]
-                   frags[i] = f[f.index("</annotation-xml>")+17:]
-                title = "".join(frags)
-        else:
-            if cmml:
-                frags = title.split("<semantics>")
-                for i in range(1,len(frags)):
-                    f = frags[i]
-                    start = f.index(">",f.index("<annotation-xml"))+1
-                    end = f.index("</annotation-xml>")
-                    frags[i] = "<semantics>" + f[start:end] + f[end+17:]
-                for i in range(0,len(frags)-1):
-                    f = frags[i]
-                    mathstart = f.index("<math ") + 6
-                    frags[i] = f[0:mathstart] + 'encoding="MathML-Content" ' + f[mathstart:]
-            else:
-                frags = title.split('<math alttext="')
-                for i in range(1,len(frags)):
-                    f = frags[i]
-                    frags[i] = f[0:f.index('"')] + f[f.index("</math>")+7:]
-            title = "".join(frags)
-        Rtitle = '<div class="title" id="{0}"> {1} </div>'.format(R["PostId"],title) # formulas have already been substituted
+        Rtitle = mathify(R["Title"])
         if Rid != Qid:       # read ahead
             firstR = True
         return(True)
@@ -493,20 +317,9 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
         template = f.read().split('|')    # pieces of the template to surround Q-A-specific data
         # to insert [LaTeX title, Title, Qid, QBody, tags, QComments, Aid, Answer, AComments, Duplicate posts, Related posts]
 
-    if l2pc:
-        with gzip.open(indir + l2pc + INPUT_FORMAT, 'rt') as Lfile:
-            Ls = csv.reader(Lfile, delimiter='\t', quotechar='\a')
-            # "latex","slt","vid","opt"
-            for row in Ls:
-                if len(row[0]) < 50:
-                   try:
-                      SLT[row[0]] = [row[1],row[2]]
-                      if row[3]:
-                          OPT[row[0]] = [row[3],row[2]]
-                   except:
-                      continue
-            print(str(len(SLT)) + " entries in LaTeX dictionary",file=sys.stderr)
-
+    print("opening ",indir + AN,file=sys.stderr)
+    latexAN = dbm.open(indir + AN,flag='r')
+    latexNAN = dbm.open(indir + NAN,flag='r')
 
     with gzip.open(indir + aposts   + INPUT_FORMAT, 'rt') as Afile, \
          gzip.open(indir + comments + INPUT_FORMAT, 'rt') as Cfile, \
@@ -516,17 +329,6 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
         As = csv.DictReader(Afile, delimiter='\t', quotechar='\a')
         Cs = csv.DictReader(Cfile, delimiter='\t', quotechar='\a')
         Rs = csv.DictReader(Rfile, delimiter='\t', quotechar='\a')
-
-        if cmml:
-            Ofile = gzip.open(indir + cmml + INPUT_FORMAT, 'rt')
-            Os = csv.DictReader(Ofile, delimiter='\t', quotechar='\a')
-        else:
-            Os = None
-        if pmml:
-            Sfile = gzip.open(indir + pmml + INPUT_FORMAT, 'rt')
-            Ss = csv.DictReader(Sfile, delimiter='\t', quotechar='\a')
-        else:
-            Ss = None
 
         y = year
         while nextQ(pmml,cmml):
@@ -580,7 +382,6 @@ def generate_files(indir, aposts, comments, rels, outdir, l2pc, pmml, cmml, CY):
                 outf.flush()
                 if not nextA():
                         break
-    #gzip.close(outf)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate HTMLs for indexing.")
@@ -606,49 +407,39 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        "-L", "--latex", default=None, dest="l2pc",
-        help="File name for LaTeX to MathML mapping (latex slt [opt], sorted by latex). Default = None."
+        "-S", "--slts", action="store_true", default=False, dest="pmml",
+        help="Include Presentation MathML. Default = No."
+    )
+    parser.add_argument(
+        "-O", "--opts", action="store_true", default=False, dest="cmml",
+        help="Include Content MathML. Default = No."
     )
 
-    parser.add_argument(
-        "-S", "--slts", default=None, dest="pmml",
-        help="File name prefix for Presentation MathML (id post_id thread_id type comment_id visual_id formula year, sorted by id). Default = None."
-    )
-
-    parser.add_argument(
-        "-O", "--opts", default=None, dest="cmml",
-        help="File name prefix for Content MathML (id post_id thread_id type comment_id visual_id formula year, sorted by id). Default = None."
-    )
     parser.add_argument(
         "-o", "--output_dir", default=None, dest="outdir",
         help="Directory for storing generated corpus by year. Default = stdout."
     )
     parser.add_argument(
-        "-y", "--year", default="2024", dest="CY",
-        help="Corpus year. Default = 2024."
+        "-y", "--year", default="2025", dest="CY",
+        help="Corpus year. Default = 2025."
     )
 
     args = parser.parse_args()
 
-    if not args.indir:
-       indir = "."
+    if args.indir.endswith("/"):
+       indir = args.indir
     else:
-       if args.indir.endswith("/"):
-          indir = args.indir
-       else:
-          indir = args.indir + "/"
+       indir = args.indir + "/"
     if args.outdir:
        if args.outdir.endswith("/"):
-          outdir = args.indir
+          outdir = args.outdir
        else:
-          outdir = args.indir + "/"
-    else:
-        outdir = None
+          outdir = args.outdir + "/"
 
     print("Using {0}{1}.tsv.gz (similarly, {2} and {3})".format(indir, args.aposts, args.comments, args.related),file=sys.stderr)
+    print("with LaTeX mappings at {0}{1} and {0}{2}".format(indir, AN, NAN),file=sys.stderr)
     print("to create corpus {0} Presentation and {1} Content MathML".format("with" if args.pmml else "without", "with" if args.cmml else "without"),file=sys.stderr)
     print("into {0}.\n<corpus>".format((outdir + "task1_" + args.CY + "_corpus_*" + OUTPUT_FORMAT) if outdir else "stdout"),file=sys.stderr)
-    generate_files(indir, args.aposts, args.comments, args.related,
-            outdir, args.l2pc, args.pmml, args.cmml, args.CY)
+    generate_files(indir, args.aposts, args.comments, args.related, outdir, args.pmml, args.cmml, args.CY)
     print("</corpus> Loaded corpus into {0}.".format(outdir if outdir else "stdout"),file=sys.stderr)
-    print(str(fcnt) + " math exprs in all: " + str(ltxcnt) + " found as LaTeX; " + str(SLTcnt) + " resolved in dict; " + str(FDcnt) + "resolved from cache; " + str(nofcnt) + " not resolved")
+    print(str(fcnt) + " math exprs in all: " + str(ltxcnt) + " found as LaTeX; " + str(SLTcnt) + " resolved by dict; " + str(nofcnt) + " not resolved")

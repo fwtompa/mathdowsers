@@ -9,3 +9,5 @@ s#>>#>\&gt;#g
 s#<=<#\&lt;=<#g
 s#>"<#>\&quot;<#g
 s#>'<#>\&apos;<#g
+s/<mpadded[^>]*>//gi
+s/delimited-</delimited-\&lt;/g
