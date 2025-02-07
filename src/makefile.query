@@ -8,7 +8,7 @@ include makefile.base
 
 trees = SO
 S = -s25-$(trees)
-alpha = 18
+alpha = 10
 alpha2 = 40
 loc = 8
 IY = 2025
@@ -130,11 +130,11 @@ $(DP)/judged-query-names.txt: $(DO)/qrel_* | $(DP)
 # ------------------ TASK 1 ------------------
 $(DR)/trec-task1$S-all.tsv: topics \
     $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe \
-    $(DP)/keepwords.txt $(DP)/stopwords.txt keywords/keepwords.txt unicode2ascii.py | $(DR)
+    $(DP)/keepwords.txt $(DP)/stopwords.txt $(DP)/keepwords.txt unicode2ascii.py | $(DR)
 	time cat $(DP)/topics-task1$S-*.txt \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
 		| python3 unicode2ascii.py -c \
-		| $(MS)/mtokenize.exe -q -M -S keywords/stopwords.txt -T keywords/keepwords.txt \
+		| $(MS)/mtokenize.exe -q -M -S $(DP)/stopwords.txt -T $(DP)/keepwords.txt \
 		| $(MS)/msearch.exe -k1000 -M -a0.$(alpha) $(DI)/task1_$(IY)_L$(loc).mindex \
 		| awk 'BEGIN{OFS="\t"} {split($$2,a,"_"); $$2=a[3]; print $$0"\tL$(loc)_a0$(alpha)"}' \
 		| awk 'BEGIN{OFS="\t"} {$$2="Q0\t"$$2; print}' \
