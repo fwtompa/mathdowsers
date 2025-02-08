@@ -132,6 +132,7 @@ $(DR)/trec-task1$S-all.tsv: topics \
     $(DP)/judged-query-names.txt $(DI)/task1_$(IY)_L$(loc).mindex.meta $(MS) $(MS)/msearch.exe $(MS)/mtokenize.exe \
     $(DP)/keepwords.txt $(DP)/stopwords.txt $(DP)/keepwords.txt unicode2ascii.py | $(DR)
 	time cat $(DP)/topics-task1$S-*.txt \
+		| sed 's/ [^ ]*cerror[^ ]*#//g' \
 		| awk -F';' 'FNR==NR{a[$$1];next} $$1 in a' $(DP)/judged-query-names.txt - \
 		| python3 unicode2ascii.py -c \
 		| $(MS)/mtokenize.exe -q -M -S $(DP)/stopwords.txt -T $(DP)/keepwords.txt \
