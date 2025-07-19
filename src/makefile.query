@@ -163,7 +163,7 @@ query-task2: $(DR)/trec-task2$S-all-latex_L$(loc)_a0$(alpha2).tsv
 $(TE)/trec_eval:
 	if [[ `uname -s` =~ CYGWIN ]] ; then  \
 		mv $(TE)/sysfunc.h . ; \
-		sed "s/<sys\/stat.h>/&\r\n#undef log2/"< sysfunc.h >$(TE)/sysfunc.h
+		sed "s/<sys\/stat.h>/&\r\n#undef log2/"< sysfunc.h >$(TE)/sysfunc.h ; \
 		rm sysfunc.h ; fi
 	$(MAKE) -C $(TE)
 

@@ -39,6 +39,7 @@ The following commands then execute portions of the pipeline:
     make index (create an index for that corpus to be used by the search engine)
     make queries (run the benchmark queries and performance evaluations)
   ```
+**N.B. This was last run using Python 3.9.16. Also, LANG must not be set, and dbm must use the gdbm (dbm.gnu) backend database.**
 
 ## Next steps being pursued 
 

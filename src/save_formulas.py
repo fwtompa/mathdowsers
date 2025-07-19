@@ -1,7 +1,8 @@
+# used Python 3.9.16
 import argparse
 import sys
 import csv
-import dbm
+import dbm      # N.B. Requires gdbm (dbm.gnu) as the backend database.
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Convert tsv file on stdin to mappings from LaTeX to (vid, SLT, OPT).")
@@ -16,8 +17,10 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
+    # N.B. Requires gdbm (dbm.gnu) as the backend database.
     AN = dbm.open(args.alpha,flag='csu')
     NAN = dbm.open(args.non,flag='csu')
+    
     Ls = csv.reader(sys.stdin, delimiter='\t', quotechar='\a')
     csv.field_size_limit(sys.maxsize)
     # latex \t vid \t slt \t opt

@@ -75,7 +75,7 @@ def generate_files(indir, aposts, comments, rels, outdir, pmml, cmml, CY):
             if pieces[0] and pieces[0][-1] == "\\":
                 if len(pieces[0]) > 1 and pieces[0][-2] != "\\" or len(pieces[0]) == 1:
                     # ignoring possibility of more escapes before that!
-                    escaped == True
+                    escaped = True
                     pieces[0] = pieces[0] + "$"     # so leave the $
             in_math = 0
             for i in range(1,len(pieces)):

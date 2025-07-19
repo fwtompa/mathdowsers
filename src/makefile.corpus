@@ -1,5 +1,18 @@
 # makefile to create the corpus of HTML documents to be indexed
 
+# Platform-specific check for GNU sed (gsed) for macOS compatibility
+SED := sed
+ifeq ($(shell uname -s), Darwin)
+GSED := $(shell which gsed)
+ifneq ($(GSED),)
+SED := $(GSED)
+$(info >>> Using GNU sed (gsed) on macOS at $(GSED))
+else
+$(warning >>> WARNING: GNU sed (gsed) not found on macOS. The script will likely fail.)
+$(warning >>> Please install it with 'sudo port install gsed' or 'brew install gnu-sed'.)
+endif
+endif
+
 all_corpus:  corpus-task1
 
 include makefile.base
@@ -28,21 +41,21 @@ $(DP)/AN: $(LATEX) $(SLTS) $(OPTS) slts.awk opts.sed latex.sed $(MT)/mathtuples/
 	# input format: id post_id thread_id type comment_id old_visual_id visual_id issue formula, sorted numerically by id
 	for f in $(LATEX)/*.tsv; do \
 	  echo $$(basename $$f) ; \
-	  cat $$f | sed '1d;s/\r//g' | sed -f latex.sed | tr -d '\n' | tr '\a' '\n' | cut -f 1,7,9 | sort >l2s1 ; \
+	  cat $$f | $(SED) '1d;s/\r//g' | $(SED) -f latex.sed | tr -d '\n' | tr '\a' '\n' | cut -f 1,7,9 | sort >l2s1 ; \
 	  cat $(SLTS)/$$(basename $$f) \
-	  	| sed '1d;s/\r//g' | awk -f slts.awk | sort | join -t '	' -o 1.1,1.2,1.3,2.7 l2s1 - > l2s2 ; \
+	  	| $(SED) '1d;s/\r//g' | awk -f slts.awk | sort | join -t '	' -o 1.1,1.2,1.3,2.7 l2s1 - > l2s2 ; \
 	  cat $(OPTS)/$$(basename $$f) \
-	  	| sed '1d;s/\r//g' | sed -f opts.sed | cut -f 1,9 | sort | join -t '	' -o 1.3,1.2,1.4,2.2  l2s2 - \
+	  	| $(SED) '1d;s/\r//g' | $(SED) -f opts.sed | cut -f 1,9 | sort | join -t '	' -o 1.3,1.2,1.4,2.2  l2s2 - \
 		| sort -u -t "	" \
-		| sed "s/<\/math>	<math/<\/math>	<omath/"  \
-		| python3 -m mathtuples.convert --context  \
-		| sed "s/<omath/<math/" \
-		| python3 -m mathtuples.convert --context --ignore-slt --opt \
-		| python3 save_formulas.py -A $(DP)/AN -N $(DP)/NAN ; \
+		| $(SED) "s/<\/math>	<math/<\/math>	<omath/"  \
+		| python -m mathtuples.convert --context  \
+		| $(SED) "s/<omath/<math/" \
+		| python -m mathtuples.convert --context --ignore-slt --opt \
+		| python save_formulas.py -A $(DP)/AN -N $(DP)/NAN ; \
 	  done
 	rm l2s?
 	# AN and NAN tables:  latex -> [vid, slt, opt]
-	# took 65 hourse to create Jan 2025, try changing to > 20 files instead (using hash?)
+	# took 65 hours to create january 2025, try changing to > 20 files instead (using hash?)
 
 mathtuples: 
 	ln -s $(MT)/mathtuples mathtuples
@@ -61,8 +74,8 @@ $(DP)/PostsToTitles$F: $(DP)/QPosts$F
 	# PostsToTitles table: noheader[PostId Year Title], sorted lexicographically by PostId (for joining with Related and Formulas)
 
 $(DP)/QPosts$F: $(POSTS) collections.sed posts.awk fields.awk | $(DP)
-	gunzip -c $(POSTS) | sed "s/\" *\/>$$/&\r/" | tr "\012\015" " \012" \
-		| sed -f collections.sed | awk -f <( cat fields.awk posts.awk ) |  sort -t '	' -k 2,2n -k 1,1n | gzip -c >$(DP)/QPosts$F
+	gunzip -c $(POSTS) | $(SED) "s/\" *\/>$$/&\r/" | tr "\012\015" " \012" \
+		| $(SED) -f collections.sed | awk -f <( cat fields.awk posts.awk ) |  sort -t '	' -k 2,2n -k 1,1n | gzip -c >$(DP)/QPosts$F
 	join -t '	' -o 1.1,2.2,1.2,1.3 APosts PostsToTitles | sort -t '	' -k 2,2n -k 1,1n -k3,3n | cat <( echo "Qid	Year	Aid	Body" ) - | gzip -c >$(DP)/APosts$F
 	join -t '	' -1 2 -o 1.1,1.2,2.2 PostsToThreads PostsToTitles | sort -t '	' -k 1,1 | gzip -c >$(DP)/PostsToThreads$F
 	cat PostsToTitles | gzip -c >$(DP)/PostsToTitles$F
@@ -71,8 +84,8 @@ $(DP)/QPosts$F: $(POSTS) collections.sed posts.awk fields.awk | $(DP)
 
 $(DP)/Comments$F: $(COMMENTS) $(OLDCOMMENTS) collections.sed comments.awk fields.awk $(DP)/PostsToThreads$F
 	gunzip -c $(OLDCOMMENTS) | grep -v "CreationDate=" | cat - <( gunzip -c $(COMMENTS) ) \
-		| sed "s/\" *\/>$$/&\r/" | tr "\012\015" " \012" \
-		| sed -f collections.sed | awk -f <( cat fields.awk comments.awk ) > Comments
+		| $(SED) "s/\" *\/>$$/&\r/" | tr "\012\015" " \012" \
+		| $(SED) -f collections.sed | awk -f <( cat fields.awk comments.awk ) > Comments
 	gunzip -c $(DP)/PostsToThreads$F | join -t '	' - Comments \
 		| sort -t '	' -k 3,3n -k 2,2n -k 1,1n -k 4,4n | cat <( echo "PostId	Qid	Year	CommentId	Text" ) - | gzip -c >$(DP)/Comments$F
 	rm Comments
@@ -80,7 +93,7 @@ $(DP)/Comments$F: $(COMMENTS) $(OLDCOMMENTS) collections.sed comments.awk fields
 
 $(DP)/Related$F: $(LINKS) collections.sed related.awk fields.awk $(DP)/PostsToTitles$F
 	gunzip -c $(LINKS) \
-		| sed -f collections.sed | sort -t '	' -k3,3 -k4,4 -k5,5r | awk -f <(cat fields.awk related.awk ) \
+		| $(SED) -f collections.sed | sort -t '	' -k3,3 -k4,4 -k5,5r | awk -f <(cat fields.awk related.awk ) \
 		| join -t '	' -1 2 -o 1.1,1.2,1.3,2.3 - <(gunzip -c $(DP)/PostsToTitles$F) \
 		| sort -t '	' -k 1,1 \
 		| join -t '	' -o 1.1,2.2,1.2,1.3,1.4 - <(gunzip -c $(DP)/PostsToTitles$F) \
@@ -89,9 +102,9 @@ $(DP)/Related$F: $(LINKS) collections.sed related.awk fields.awk $(DP)/PostsToTi
 
 # ------------------ CORPUS  ------------------
 $(DP)/task1_$(CY)_corpus_2010.xml.gz: generate_corpus.py $(DP)/QPosts$F $(DP)/Comments$F $(DP)/Related$F $(DP)/AN template_minimal_v3.html
-	#cat $(DP)/trial | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S -O -o $(DP) -y $(CY)
-	gunzip -c $(DP)/QPosts$F | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S -O -y $(CY) -o $(DP)
-	#gunzip -c $(DP)/QPosts$F | grep "^[^	]*	\(Year\|2015\)	" | python3 generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S -O -y $(CY) -o $(DP)
+	#cat $(DP)/trial | python generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S -O -o $(DP) -y $(CY)
+	gunzip -c $(DP)/QPosts$F | python generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S -O -y $(CY) -o $(DP)
+	#gunzip -c $(DP)/QPosts$F | grep "^[^	]*	\(Year\|2015\)	" | python generate_corpus.py -i $(DP) -A APosts -C Comments -R Related -S -O -y $(CY) -o $(DP)
 
 $(DP)/task2_$(CY)_data.xml.gz:  $(DP)/slts$F task2_corpus.awk
 	cat $(DP)/slts$F | gunzip -c | awk -f task2_corpus.awk | gzip > $(DP)/task2_$(CY)_data.xml.gz
