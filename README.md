@@ -59,5 +59,5 @@ The following commands then execute portions of the pipeline:
 
 Andrew Kane, Yin Ki Ng, Frank Wm. Tompa. [Dowsing for Answers to Math Questions: Doing Better with Less](http://ceur-ws.org/Vol-3180/paper-03.pdf), in: CLEF 2022, volume 3180 of CEUR Workshop Proceddings, 2022.
 
-Besat Kassaie, Andrew Kane, and Frank Wm. Tompa. [Exploiting Query Reformulation and Reciprocal Rank Fusion in Math-Aware Search Engines](https://dl.acm.org/doi/pdf/10.1145/3704268.3742687), in: DocEng 2025, 5:1-5:10.
+Besat Kassaie, Andrew Kane, and Frank Wm. Tompa. [Exploiting Query Reformulation and Reciprocal Rank Fusion in Math-Aware Search Engines](https://dl.acm.org/doi/pdf/10.1145/3704268.3742687), in: DocEng 2025, 5:1-5:10. Earned *SIGWEB DocEng Best Paper Award*.
 
